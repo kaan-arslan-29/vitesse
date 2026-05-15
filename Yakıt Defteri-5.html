@@ -793,6 +793,39 @@ body {
 }
 .switch.on { background: var(--accent); }
 .switch.on::after { left: 22px; }
+
+/* ── Empty State ────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 12px;
+  text-align: center;
+}
+.empty-state .empty-icon {
+  width: 64px; height: 64px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.empty-state .empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.empty-state .empty-sub {
+  font-size: 12.5px;
+  color: var(--text-2);
+  font-weight: 400;
+  line-height: 1.5;
+  max-width: 220px;
+}
 </style>
 </head>
 <body>
@@ -800,6 +833,18 @@ body {
 <script type="text/babel">
 
 const { useState, useEffect, useMemo, useContext, createContext, useRef } = React;
+
+/* ── Empty State bileşeni ───────────────────────────────── */
+function EmptyState({ icon, title, sub, action, onAction }) {
+  return (
+    <div className="empty-state">
+      <div className="empty-icon">{icon}</div>
+      <div className="empty-title">{title}</div>
+      <div className="empty-sub">{sub}</div>
+      {action && <button className="btn btn-primary" onClick={onAction} style={{ marginTop: 4, padding: '10px 20px', fontSize: 13 }}>{action}</button>}
+    </div>
+  );
+}
 
 /* ── Count-up animasyonu ────────────────────────────────── */
 function useCountUp(target, duration = 600) {
@@ -1348,8 +1393,12 @@ function OzetScreen() {
         {upcoming.length > 0 && <span className="meta">Sonraki 30 gün</span>}
       </div>
       {upcoming.length === 0 ? (
-        <div style={{ margin: '0 18px', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>Takvim sekmesinden etkinlik ekleyebilirsin.</span>
+        <div style={{ margin: '0 18px' }}>
+          <EmptyState
+            icon={<Icon.Calendar s={28} />}
+            title="Yaklaşan hatırlatma yok"
+            sub="Takvim sekmesinden muayene, sigorta gibi etkinlikler ekleyebilirsin."
+          />
         </div>
       ) : (
         <div className="upcoming-list">
@@ -1418,6 +1467,15 @@ function GecmisScreen({ onEdit }) {
       <div className="section-title">
         <h3>Tüm Dolumlar</h3>
       </div>
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Icon.Fuel s={28} />}
+          title="Henüz dolum kaydı yok"
+          sub="İlk dolumunu ekleyerek yakıt tüketimini takip etmeye başla."
+          action={<><Icon.Plus s={14} /> Dolum ekle</>}
+          onAction={() => document.querySelector('.fab')?.click()}
+        />
+      ) : (
       <div className="entry-list">
         {filtered.map((e) => {
           const dm = dayMon(e.dateISO);
@@ -1450,6 +1508,7 @@ function GecmisScreen({ onEdit }) {
 
         })}
       </div>
+      )}
     </div>);
 
 }
@@ -1477,10 +1536,13 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
 
       <div className="upcoming-list">
         {events.length === 0 ?
-        <div className="upcoming-row" style={{ justifyContent: 'center', flexDirection: 'column', padding: 28, gap: 12 }}>
-            <div style={{ color: 'var(--text-2)', fontSize: 13 }}>Henüz etkinlik yok</div>
-            <button className="btn btn-primary" onClick={onAddEvent} style={{ padding: '10px 18px', fontSize: 13 }}><Icon.Plus s={14} /> İlk etkinliği ekle</button>
-          </div> :
+        <EmptyState
+          icon={<Icon.Calendar s={28} />}
+          title="Henüz etkinlik yok"
+          sub="Muayene, sigorta, lastik gibi hatırlatmaları buradan takip edebilirsin."
+          action={<><Icon.Plus s={14} /> Etkinlik ekle</>}
+          onAction={onAddEvent}
+        /> :
         events.map((e) => {
           const v = store.vehicles.find((x) => x.id === e.vehicleId);
           return (
