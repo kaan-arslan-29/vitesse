@@ -1352,12 +1352,7 @@ function OzetScreen() {
     return d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   });
   const thisMonthSpend = thisMonth.reduce((s, e) => s + e.liters * e.pricePerL, 0);
-  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const thisMonthConsPts = consPts.filter((p) => { const d = parseISO(p.dateISO); return d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); });
-  const prevMonthConsPts = consPts.filter((p) => { const d = parseISO(p.dateISO); return d && d.getFullYear() === prevMonthDate.getFullYear() && d.getMonth() === prevMonthDate.getMonth(); });
-  const thisMonthAvg = averageConsumption(thisMonthConsPts);
-  const prevMonthAvg = averageConsumption(prevMonthConsPts);
-  const consMonthPct = thisMonthAvg !== null && prevMonthAvg !== null ? (thisMonthAvg - prevMonthAvg) / prevMonthAvg * 100 : null;
+  const consMonthPct = lastCons !== null && prevCons !== null && prevCons > 0 ? (lastCons - prevCons) / prevCons * 100 : null;
 
   const tlPerKm = useMemo(() => {
     if (!vehicle || consPts.length === 0) return null;
