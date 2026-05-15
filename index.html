@@ -806,6 +806,25 @@ body {
 .switch.on { background: var(--accent); }
 .switch.on::after { left: 22px; }
 
+/* ── Grafik animasyonları ───────────────────────────────── */
+@keyframes drawLine {
+  from { stroke-dashoffset: 800; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes fadeArea {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.chart-line {
+  stroke-dasharray: 800;
+  stroke-dashoffset: 800;
+  animation: drawLine 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.chart-area {
+  opacity: 0;
+  animation: fadeArea 0.8s ease 0.6s forwards;
+}
+
 /* ── Empty State ────────────────────────────────────────── */
 .empty-state {
   display: flex;
@@ -1209,12 +1228,12 @@ function AreaChart({ data, labels, unit = '' }) {
           </g>
         );
       })}
-      <path d={areaPath} fill="url(#areaGrad)" />
+      <path d={areaPath} fill="url(#areaGrad)" className="chart-area" />
       {/* Ortalama çizgisi */}
       <line x1={pad.l} y1={avgY} x2={W - pad.r} y2={avgY} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="5 4" />
       <rect x={W / 2 - 31} y={avgY - 19} width={62} height={14} rx="7" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
       <text x={W / 2} y={avgY - 9} fontSize="10" textAnchor="middle" fill="rgba(255,255,255,0.55)" fontFamily="Geist Mono, monospace">ort: {fmt(avg, 1)}</text>
-      <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" className="chart-line" />
       {xs.map((x, i) => {
         const isActive = active === i;
         const isMin = i === minIdx;
