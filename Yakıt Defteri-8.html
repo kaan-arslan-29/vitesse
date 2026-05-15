@@ -1557,6 +1557,22 @@ function GecmisScreen({ onEdit }) {
     return xs.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   }, [store.entries, timeFilter]);
 
+  const consumptionMap = useMemo(() => {
+    const xs = [...store.entries].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const map = new Map();
+    let lastFullIdx = -1;
+    for (let i = 0; i < xs.length; i++) {
+      if (!xs[i].full) continue;
+      if (lastFullIdx === -1) { lastFullIdx = i; continue; }
+      let liters = 0;
+      for (let j = lastFullIdx + 1; j <= i; j++) liters += xs[j].liters;
+      const km = xs[i].km - xs[lastFullIdx].km;
+      if (km > 0) map.set(xs[i].id, liters * 100 / km);
+      lastFullIdx = i;
+    }
+    return map;
+  }, [store.entries]);
+
   const timePills = [
     { key: 'all', label: 'Tümü' },
     { key: 'month', label: 'Bu ay' },
@@ -1626,7 +1642,7 @@ function GecmisScreen({ onEdit }) {
           <div className="entry-group" key={key}>
             <div className="entry-group-header">
               <span className="month">{monthLabel(key)}</span>
-              <span className="count">{entries.length} dolum</span>
+              <span className="count">{entries.length} dolum · {fmt(entries.reduce((s, e) => s + e.liters * e.pricePerL, 0), 0)} ₺</span>
             </div>
             {entries.map((e) => {
               const dm = dayMon(e.dateISO);
@@ -1645,6 +1661,7 @@ function GecmisScreen({ onEdit }) {
                       <span className="price">{fmt(e.pricePerL, 2)} ₺/L</span>
                       <span className="sep">·</span>
                       <span>{fmtInt(e.km)} km</span>
+                      {consumptionMap.has(e.id) && <><span className="sep">·</span><span>{fmt(consumptionMap.get(e.id), 1)} L/100</span></>}
                       {e.station && <><span className="sep">·</span><span>{e.station}</span></>}
                     </div>
                   </div>
