@@ -1251,7 +1251,7 @@ function AreaChart({ data, labels, unit = '', decimals = 2 }) {
       {/* Ortalama çizgisi */}
       <line x1={pad.l} y1={avgY} x2={W - pad.r} y2={avgY} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="5 4" />
       <rect x={W / 2 - 31} y={avgY - 19} width={62} height={14} rx="7" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
-      <text x={W / 2} y={avgY - 9} fontSize="10" textAnchor="middle" fill="rgba(255,255,255,0.55)" fontFamily="Geist Mono, monospace">ort: {fmt(avg, 1)}</text>
+      <text x={W / 2} y={avgY - 9} fontSize="10" textAnchor="middle" fill="var(--text-2)" fontFamily="Geist Mono, monospace">ort: {fmt(avg, 1)}</text>
       <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" className="chart-line" />
       {xs.map((x, i) => {
         const isActive = active === i;
@@ -1426,7 +1426,7 @@ function OzetScreen() {
             </button>
             {infoOpen && <>
               <div onClick={() => setInfoOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9 }} />
-              <div style={{ position: 'absolute', left: 0, top: 22, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap', zIndex: 10, transform: 'translateX(-30%)' }}>{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
+              <div style={{ position: 'absolute', left: 0, top: 22, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10, transform: 'translateX(-30%)' }}>{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
             </>}
           </div>
         </div>
