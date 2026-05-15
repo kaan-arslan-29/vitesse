@@ -1407,7 +1407,7 @@ function OzetScreen() {
             <span className="icon"><Icon.Gauge /></span>
           </div>
           <div className="value">{tlPerKm !== null ? fmt(animTlPerKm, 2) : '—'}<span className="u">₺/km</span></div>
-          <div className="sub">son 30 gün</div>
+          <div className="sub">tüm zamanlar</div>
         </div>
         <div className="stat-card">
           <div className="top">
@@ -1439,34 +1439,36 @@ function OzetScreen() {
         </>
       }
 
-      <div className="section-title" style={{ marginTop: consPts.length < 2 ? 8 : 0 }}>
-        <h3>Yaklaşan Hatırlatmalar</h3>
-        {upcoming.length > 0 && <span className="meta">Sonraki 30 gün</span>}
-      </div>
-      {upcoming.length === 0 ? (
-        <div style={{ margin: '0 18px' }}>
-          <EmptyState
-            icon={<Icon.Calendar s={28} />}
-            title="Yaklaşan hatırlatma yok"
-            sub="Takvim sekmesinden muayene, sigorta gibi etkinlikler ekleyebilirsin."
-          />
+      {(store.events || []).length > 0 && <>
+        <div className="section-title" style={{ marginTop: consPts.length < 2 ? 8 : 0 }}>
+          <h3>Yaklaşan Hatırlatmalar</h3>
+          {upcoming.length > 0 && <span className="meta">Sonraki 30 gün</span>}
         </div>
-      ) : (
-        <div className="upcoming-list">
-          {upcoming.map((e) =>
-          <div className="upcoming-row" key={e.id}>
-                <div className="left">
-                  <div className="iconbox">{e.type === 'Kasko' || e.type === 'Sigorta' ? <Icon.Shield /> : <Icon.Wrench />}</div>
-                  <div>
-                    <div className="name">{e.type}</div>
-                    <div className="date">{fmtDate(e.endISO)}</div>
-                  </div>
+        {upcoming.length === 0 ? (
+          <div style={{ margin: '0 18px' }}>
+            <EmptyState
+              icon={<Icon.Calendar s={28} />}
+              title="Yaklaşan hatırlatma yok"
+              sub="Takvim sekmesinden muayene, sigorta gibi etkinlikler ekleyebilirsin."
+            />
+          </div>
+        ) : (
+          <div className="upcoming-list">
+            {upcoming.map((e) =>
+            <div className="upcoming-row" key={e.id}>
+              <div className="left">
+                <div className="iconbox">{e.type === 'Kasko' || e.type === 'Sigorta' ? <Icon.Shield /> : <Icon.Wrench />}</div>
+                <div>
+                  <div className="name">{e.type}</div>
+                  <div className="date">{fmtDate(e.endISO)}</div>
                 </div>
-                <span className={`remaining ${e.days < 15 ? 'warn' : ''}`}>{e.days} gün</span>
               </div>
-          )}
-        </div>
-      )}
+              <span className={`remaining ${e.days < 15 ? 'warn' : ''}`}>{e.days} gün</span>
+            </div>
+            )}
+          </div>
+        )}
+      </>}
     </div>);
 
 }
