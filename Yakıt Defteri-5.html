@@ -612,6 +612,10 @@ body {
   font-family: var(--font-sans);
 }
 .nav-btn.active { color: var(--accent); }
+.nav-btn.active svg {
+  filter: drop-shadow(0 0 6px rgba(245, 179, 66, 0.5));
+}
+.nav-btn { position: relative; }
 .nav-btn:active { opacity: 0.6; }
 .fab-wrap {
   position: relative;
