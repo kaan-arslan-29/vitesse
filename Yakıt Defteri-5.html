@@ -1140,7 +1140,7 @@ function AreaChart({ data, labels, unit = '' }) {
   const [active, setActive] = useState(null);
   if (!data || data.length < 2) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-2)', fontSize: 13 }}>Yetersiz veri</div>;
   const W = 320, H = 160;
-  const pad = { t: 12, r: 14, b: 8, l: 38 };
+  const pad = { t: 12, r: 14, b: 8, l: 50 };
   const cW = W - pad.l - pad.r;
   const cH = H - pad.t - pad.b;
 
@@ -1161,6 +1161,11 @@ function AreaChart({ data, labels, unit = '' }) {
 
   const xs = data.map((_, i) => pad.l + (i / (data.length - 1)) * cW);
   const ys = data.map((v) => pad.t + ((yMax - v) / range) * cH);
+
+  const avg = data.reduce((s, v) => s + v, 0) / data.length;
+  const avgY = pad.t + ((yMax - avg) / range) * cH;
+  const minVal = Math.min(...data), maxVal = Math.max(...data);
+  const minIdx = data.indexOf(minVal), maxIdx = data.indexOf(maxVal);
 
   // Cubic Bezier smooth path (Catmull-Rom → Bezier)
   const smooth = (pts) => {
@@ -1198,19 +1203,27 @@ function AreaChart({ data, labels, unit = '' }) {
         return (
           <g key={i}>
             <line x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray="3 5" strokeOpacity="0.7" />
-            <text x={pad.l - 6} y={y + 3.5} fontSize="9.5" textAnchor="end" fill="var(--text-dim)" fontFamily="Geist Mono, monospace">
+            <text x={pad.l - 24} y={y + 3.5} fontSize="9.5" textAnchor="end" fill="#6e6e82" fontFamily="Geist Mono, monospace">
               {val.toFixed(1)}
             </text>
           </g>
         );
       })}
       <path d={areaPath} fill="url(#areaGrad)" />
+      {/* Ortalama çizgisi */}
+      <line x1={pad.l} y1={avgY} x2={W - pad.r} y2={avgY} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="5 4" />
+      <rect x={W - pad.r - 70} y={avgY - 10} width={70} height={16} rx="8" fill="rgba(245,179,66,0.1)" stroke="rgba(245,179,66,0.25)" strokeWidth="0.8" />
+      <text x={W - pad.r - 35} y={avgY + 2} fontSize="8.5" textAnchor="middle" fill="rgba(245,179,66,0.7)" fontFamily="Geist Mono, monospace">ort: {fmt(avg, 1)}</text>
       <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
       {xs.map((x, i) => {
         const isActive = active === i;
+        const isMin = i === minIdx;
+        const isMax = i === maxIdx;
+        const dotColor = isMin ? '#5dba7d' : isMax ? '#c45f5f' : isActive ? 'var(--accent)' : 'var(--bg)';
+        const strokeColor = isMin ? '#5dba7d' : isMax ? '#c45f5f' : 'var(--accent)';
         return (
           <g key={i} style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setActive(active === i ? null : i); }}>
-            <circle cx={x} cy={ys[i]} r={isActive ? 6 : 3.5} fill={isActive ? 'var(--accent)' : 'var(--bg)'} stroke="var(--accent)" strokeWidth="2" style={{ transition: 'r 0.15s' }} />
+            <circle cx={x} cy={ys[i]} r={isActive || isMin || isMax ? 5 : 3.5} fill={dotColor} stroke={strokeColor} strokeWidth="2" style={{ transition: 'r 0.15s' }} />
             {isActive && labels && (() => {
               const tooltipW = 90, tooltipH = 38;
               const tx = Math.min(Math.max(x - tooltipW / 2, pad.l), W - pad.r - tooltipW);
