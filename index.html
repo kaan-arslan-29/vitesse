@@ -1335,6 +1335,7 @@ function VehiclePill() {
 
 /* ── Özet ──────────────────────────────────────────────── */
 function OzetScreen() {
+  const [infoOpen, setInfoOpen] = useState(false);
   const store = useStore();
   const vehicle = store.vehicles.find((v) => v.id === store.activeVehicleId) || store.vehicles[0];
   const myEntries = store.entries.filter((e) => e.vehicleId === vehicle?.id).sort((a, b) => b.dateISO.localeCompare(a.dateISO));
@@ -1426,7 +1427,12 @@ function OzetScreen() {
           <span className="hero-big">{avgCons !== null ? fmt(animAvgCons, 1) : '—'}</span>
           <span className="hero-unit">L/100km</span>
         </div>
-        <div className="hero-sub">{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
+        <div style={{ position: 'relative', display: 'inline-block', marginTop: 6 }}>
+          <button onClick={() => setInfoOpen(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </button>
+          {infoOpen && <div onClick={() => setInfoOpen(false)} style={{ position: 'absolute', left: 0, top: 20, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10 }}>{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>}
+        </div>
         {consMonthPct !== null && <div style={{ fontSize: 11, marginTop: 4, color: consMonthPct > 0 ? '#c45f5f' : '#5dba7d', fontWeight: 500 }}>{consMonthPct > 0 ? '▲' : '▼'} Önceki doluma göre %{Math.abs(consMonthPct).toFixed(1)} {consMonthPct > 0 ? 'daha fazla tüketti' : 'daha az tüketti'}</div>}
 
         <div className="tank-row">
