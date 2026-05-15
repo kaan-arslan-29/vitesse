@@ -511,8 +511,10 @@ body {
   color: var(--text-2);
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .entry-bot .price {
   font-family: var(--font-mono);
