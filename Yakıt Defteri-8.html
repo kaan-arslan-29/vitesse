@@ -1477,7 +1477,7 @@ function OzetScreen() {
             <span className="icon"><Icon.Receipt /></span>
           </div>
           <div className="value">{last ? fmt(animLastSpend, 2) : '—'}<span className="u">₺</span></div>
-          <div className="sub">{last ? `${fmtDate(last.dateISO)} · ${fmt(last.liters, 0)} L` : '—'}</div>
+          <div className="sub">{last ? `${fmtDate(last.dateISO)} · ${fmt(last.liters, 2)} L` : '—'}</div>
         </div>
         <div className="stat-card">
           <div className="top">
