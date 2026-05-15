@@ -314,6 +314,12 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 10px 10px;
+  transition: transform 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.stat-card:active {
+  transform: scale(0.97);
+  background: var(--surface-2);
 }
 .stat-card .top {
   display: flex;
@@ -448,6 +454,8 @@ body {
   align-items: center;
 }
 .entry + .entry { border-top: 1px solid var(--border); }
+.entry { transition: background 0.15s; }
+.entry:active { background: var(--surface-2); }
 .entry-date {
   text-align: center;
   font-family: var(--font-mono);
