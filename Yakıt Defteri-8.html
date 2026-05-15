@@ -1144,7 +1144,7 @@ const parseNum = (s) => {
 };
 
 /* ── Store ─────────────────────────────────────────────── */
-const STORAGE_KEY = 'yakit-defteri-v3';
+const STORAGE_KEY = 'yakit-defteri-v4';
 const SEED = {
   entries: [
   { id: 'e1', dateISO: '2026-02-14', liters: 25.00, pricePerL: 58.00, km: 143000, station: '', full: true },
@@ -1247,7 +1247,7 @@ function AreaChart({ data, labels, unit = '', decimals = 2, showAvg = true }) {
 
   // Nice round grid values targeting ~4 intervals regardless of spread
   const mag = Math.pow(10, Math.floor(Math.log10(spread / 4)));
-  const step = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((s) => spread / s <= 4) ?? mag * 10;
+  const step = [1, 2, 5, 10].map((f) => f * mag).find((s) => spread / s <= 4) ?? mag * 10;
   const labelDec = step < 1 ? 1 : 0;
   const gridMin = Math.floor(dataMin / step) * step;
   const gridMax = Math.ceil(dataMax / step) * step;
