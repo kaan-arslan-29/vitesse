@@ -1485,7 +1485,7 @@ function OzetScreen() {
             <span className="icon"><Icon.Sparkle /></span>
           </div>
           <div className="value">{fmt(animYearSpend, 0)}<span className="u">₺</span></div>
-          <div className="sub">bu yıl · {yearEntries.length} dolum</div>
+          <div className="sub">bu yıl · {fmt(yearEntries.reduce((s, e) => s + e.liters, 0), 1)} L</div>
         </div>
       </div>
 
