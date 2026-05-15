@@ -1245,7 +1245,7 @@ function AreaChart({ data, labels, unit = '', decimals = 2 }) {
         return (
           <g key={i}>
             <line x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray="3 5" strokeOpacity="0.7" />
-            <text x={pad.l - 24} y={y + 3.5} fontSize="10" textAnchor="end" fill="var(--text-dim)" fontFamily="Geist Mono, monospace">
+            <text x={pad.l - 24} y={y + 3.5} fontSize="10" textAnchor="end" fill="var(--color-chart-axis)" fontFamily="Geist Mono, monospace">
               {val.toFixed(1)}
             </text>
           </g>
