@@ -1199,7 +1199,7 @@ function averageConsumption(pts) {
 }
 
 /* ── Area Chart ────────────────────────────────────────── */
-function AreaChart({ data, labels, unit = '', decimals = 2 }) {
+function AreaChart({ data, labels, unit = '', decimals = 2, showAvg = true }) {
   const [active, setActive] = useState(null);
   if (!data || data.length < 2) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-2)', fontSize: 14 }}>Yetersiz veri</div>;
   const W = 320, H = 160;
@@ -1276,9 +1276,11 @@ function AreaChart({ data, labels, unit = '', decimals = 2 }) {
       })}
       <path d={areaPath} fill="url(#areaGrad)" className="chart-area" />
       {/* Ortalama çizgisi */}
-      <line x1={pad.l} y1={avgY} x2={W - pad.r} y2={avgY} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="5 4" />
-      <rect x={W / 2 - 31} y={avgY - 19} width={62} height={14} rx="7" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
-      <text x={W / 2} y={avgY - 9} fontSize="10" textAnchor="middle" fill="var(--text-subtle)" fontFamily="Geist Mono, monospace">ort: {fmt(avg, 1)}</text>
+      {showAvg && <>
+        <line x1={pad.l} y1={avgY} x2={W - pad.r} y2={avgY} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="5 4" />
+        <rect x={W / 2 - 31} y={avgY - 19} width={62} height={14} rx="7" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
+        <text x={W / 2} y={avgY - 9} fontSize="10" textAnchor="middle" fill="var(--text-subtle)" fontFamily="Geist Mono, monospace">ort: {fmt(avg, 1)}</text>
+      </>}
       <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" className="chart-line" />
       {xs.map((x, i) => {
         const isActive = active === i;
@@ -1562,7 +1564,7 @@ function GecmisScreen({ onEdit }) {
             <h3>Fiyat Geçmişi · ₺/Litre</h3>
           </div>
           <div className="chart-card">
-            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit="₺/L" />
+            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit="₺/L" showAvg={false} />
           </div>
         </>
       }
