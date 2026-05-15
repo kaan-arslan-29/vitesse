@@ -164,36 +164,6 @@ body {
   font-weight: 400;
 }
 
-/* ── Vehicle Pill ───────────────────────────────────────── */
-.vehicle-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 5px 14px 5px 5px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  cursor: pointer;
-  white-space: nowrap;
-  font-family: var(--font-sans);
-  transition: background 0.15s;
-}
-.vehicle-pill:hover { background: var(--surface-2); }
-.vehicle-pill .dot {
-  width: 26px; height: 26px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  display: flex; align-items: center; justify-content: center;
-}
-.vehicle-pill .plate {
-  color: var(--text-2);
-  font-weight: 400;
-}
-.vehicle-pill .chev { color: var(--text-2); margin-left: 2px; }
 
 /* ── Hero Card ──────────────────────────────────────────── */
 .hero {
@@ -1143,22 +1113,16 @@ const parseNum = (s) => {
 /* ── Store ─────────────────────────────────────────────── */
 const STORAGE_KEY = 'yakit-defteri-v3';
 const SEED = {
-  vehicles: [
-  { id: 'v1', name: 'Polo', plate: '34 ABC 123', fuel: 'Dizel', tank: 45 },
-  { id: 'v2', name: 'Clio', plate: '34 XYZ 789', fuel: 'Benzin', tank: 50 }],
-
   entries: [
-  { id: 'e1', vehicleId: 'v1', dateISO: '2026-02-14', liters: 25.00, pricePerL: 58.00, km: 143000, station: '', full: true },
-  { id: 'e2', vehicleId: 'v1', dateISO: '2026-03-01', liters: 30.00, pricePerL: 60.00, km: 143300, station: '', full: true },
-  { id: 'e3', vehicleId: 'v1', dateISO: '2026-03-09', liters: 45.00, pricePerL: 62.00, km: 143800, station: 'BP', full: true },
-  { id: 'e4', vehicleId: 'v1', dateISO: '2026-03-15', liters: 45.00, pricePerL: 65.00, km: 144700, station: 'BP', full: false },
-  { id: 'e5', vehicleId: 'v1', dateISO: '2026-03-25', liters: 45.00, pricePerL: 67.70, km: 145500, station: 'Shell', full: true }],
+  { id: 'e1', dateISO: '2026-02-14', liters: 25.00, pricePerL: 58.00, km: 143000, station: '', full: true },
+  { id: 'e2', dateISO: '2026-03-01', liters: 30.00, pricePerL: 60.00, km: 143300, station: '', full: true },
+  { id: 'e3', dateISO: '2026-03-09', liters: 45.00, pricePerL: 62.00, km: 143800, station: 'BP', full: true },
+  { id: 'e4', dateISO: '2026-03-15', liters: 45.00, pricePerL: 65.00, km: 144700, station: 'BP', full: false },
+  { id: 'e5', dateISO: '2026-03-25', liters: 45.00, pricePerL: 67.70, km: 145500, station: 'Shell', full: true }],
 
   events: [
-  { id: 'ev1', vehicleId: 'v1', type: 'Kasko', startISO: '2026-05-15', endISO: '2026-06-03', notifyDays: 15 },
-  { id: 'ev2', vehicleId: 'v1', type: 'Muayene', startISO: '2026-04-20', endISO: '2026-05-28', notifyDays: 30 }],
-
-  activeVehicleId: 'v1'
+  { id: 'ev1', type: 'Kasko', startISO: '2026-05-15', endISO: '2026-06-03', notifyDays: 15 },
+  { id: 'ev2', type: 'Muayene', startISO: '2026-04-20', endISO: '2026-05-28', notifyDays: 30 }]
 };
 
 function loadStore() {
@@ -1172,13 +1136,9 @@ function StoreProvider({ children }) {
   const [data, setData] = useState(loadStore);
   useEffect(() => {saveStore(data);}, [data]);
   const actions = useMemo(() => ({
-    setActiveVehicleId: (id) => setData((d) => ({ ...d, activeVehicleId: id })),
     addEntry: (e) => setData((d) => ({ ...d, entries: [...d.entries, { ...e, id: uid() }] })),
     updateEntry: (id, p) => setData((d) => ({ ...d, entries: d.entries.map((e) => e.id === id ? { ...e, ...p } : e) })),
     deleteEntry: (id) => setData((d) => ({ ...d, entries: d.entries.filter((e) => e.id !== id) })),
-    addVehicle: (v) => setData((d) => ({ ...d, vehicles: [...d.vehicles, { ...v, id: uid() }] })),
-    updateVehicle: (id, p) => setData((d) => ({ ...d, vehicles: d.vehicles.map((v) => v.id === id ? { ...v, ...p } : v) })),
-    deleteVehicle: (id) => setData((d) => ({ ...d, vehicles: d.vehicles.filter((v) => v.id !== id), entries: d.entries.filter((e) => e.vehicleId !== id) })),
     addEvent: (e) => setData((d) => ({ ...d, events: [...d.events, { ...e, id: uid() }] })),
     updateEvent: (id, p) => setData((d) => ({ ...d, events: d.events.map((e) => e.id === id ? { ...e, ...p } : e) })),
     deleteEvent: (id) => setData((d) => ({ ...d, events: d.events.filter((e) => e.id !== id) })),
@@ -1190,8 +1150,8 @@ function StoreProvider({ children }) {
 const useStore = () => useContext(StoreCtx);
 
 /* ── Stats ─────────────────────────────────────────────── */
-function consumptionPoints(entries, vehicleId) {
-  const xs = entries.filter((e) => e.vehicleId === vehicleId).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+function consumptionPoints(entries) {
+  const xs = [...entries].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   const points = [];
   let lastFullIdx = -1;
   for (let i = 0; i < xs.length; i++) {
@@ -1336,94 +1296,49 @@ function BrandIcon() {
 
 }
 
-/* ── Vehicle Pill ──────────────────────────────────────── */
-function VehiclePill() {
-  const store = useStore();
-  const [open, setOpen] = useState(false);
-  const v = store.vehicles.find((x) => x.id === store.activeVehicleId) || store.vehicles[0];
-  if (!v) return null;
-  return (
-    <>
-      <button className="vehicle-pill" onClick={() => store.vehicles.length > 1 && setOpen(true)}>
-        <span className="dot"><Icon.Car /></span>
-        <span>{v.name}</span>
-        <span className="plate">· {v.plate}</span>
-        {store.vehicles.length > 1 && <span className="chev"><Icon.ChevronDown s={13} /></span>}
-      </button>
-      {open &&
-      <div className="modal-overlay" onClick={() => setOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-handle" />
-            <div className="modal-head"><h2>Araç seç</h2><button className="btn-icon" onClick={() => setOpen(false)}><Icon.X /></button></div>
-            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {store.vehicles.map((vh) =>
-            <button key={vh.id} onClick={() => {store.setActiveVehicleId(vh.id);setOpen(false);}}
-            style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, background: vh.id === v.id ? 'var(--accent-soft)' : 'var(--surface)', border: '1px solid', borderColor: vh.id === v.id ? 'var(--accent)' : 'var(--border)', cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--font-sans)' }}>
-                  <span style={{ width: 38, height: 38, borderRadius: 11, background: vh.id === v.id ? 'var(--accent)' : 'var(--bg-2)', color: vh.id === v.id ? 'var(--accent-ink)' : 'var(--text-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon.Car s={18} /></span>
-                  <span style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{vh.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>{vh.fuel} · {vh.plate}</div>
-                  </span>
-                  {vh.id === v.id && <Icon.Check s={16} />}
-                </button>
-            )}
-            </div>
-          </div>
-        </div>
-      }
-    </>);
-
-}
-
 /* ── Özet ──────────────────────────────────────────────── */
 function OzetScreen() {
   const [infoOpen, setInfoOpen] = useState(false);
   const store = useStore();
-  const vehicle = store.vehicles.find((v) => v.id === store.activeVehicleId) || store.vehicles[0];
-  const myEntries = store.entries.filter((e) => e.vehicleId === vehicle?.id).sort((a, b) => b.dateISO.localeCompare(a.dateISO));
-  const consPts = useMemo(() => vehicle ? consumptionPoints(store.entries, vehicle.id) : [], [store.entries, vehicle]);
+  const myEntries = useMemo(() => [...store.entries].sort((a, b) => b.dateISO.localeCompare(a.dateISO)), [store.entries]);
+  const consPts = useMemo(() => consumptionPoints(store.entries), [store.entries]);
   const avgCons = useMemo(() => averageConsumption(consPts), [consPts]);
   const lastCons = consPts.length ? consPts[consPts.length - 1].consumption : null;
   const prevCons = consPts.length >= 2 ? consPts[consPts.length - 2].consumption : null;
-  const consDelta = lastCons !== null && prevCons !== null ? lastCons - prevCons : null;
 
   const last = myEntries[0];
   const now = new Date();
   const thisMonth = store.entries.filter((e) => {
-    if (e.vehicleId !== vehicle?.id) return false;
     const d = parseISO(e.dateISO);
     return d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   });
   const thisMonthSpend = thisMonth.reduce((s, e) => s + e.liters * e.pricePerL, 0);
-  const consMonthPct = lastCons !== null && prevCons !== null && prevCons > 0 ? (lastCons - prevCons) / prevCons * 100 : null;
 
   const tlPerKm = useMemo(() => {
-    if (!vehicle || consPts.length === 0) return null;
-    const xs = store.entries.filter((e) => e.vehicleId === vehicle.id).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-    let lastFull = -1,totalTL = 0,totalKm = 0;
+    if (consPts.length === 0) return null;
+    const xs = [...store.entries].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    let lastFull = -1, totalTL = 0, totalKm = 0;
     for (let i = 0; i < xs.length; i++) {
       if (!xs[i].full) continue;
-      if (lastFull === -1) {lastFull = i;continue;}
+      if (lastFull === -1) { lastFull = i; continue; }
       for (let j = lastFull + 1; j <= i; j++) totalTL += xs[j].liters * xs[j].pricePerL;
       totalKm += xs[i].km - xs[lastFull].km;
       lastFull = i;
     }
     return totalKm > 0 ? totalTL / totalKm : null;
-  }, [store.entries, vehicle, consPts]);
+  }, [store.entries, consPts]);
 
-  const sortedVehicleEntries = useMemo(() => store.entries.filter((e) => e.vehicleId === vehicle?.id).sort((a, b) => a.dateISO.localeCompare(b.dateISO)), [store.entries, vehicle]);
-  const lastPrice = sortedVehicleEntries.length ? sortedVehicleEntries[sortedVehicleEntries.length - 1].pricePerL : null;
-  const prevPrice = sortedVehicleEntries.length >= 2 ? sortedVehicleEntries[sortedVehicleEntries.length - 2].pricePerL : null;
+  const sortedEntries = useMemo(() => [...store.entries].sort((a, b) => a.dateISO.localeCompare(b.dateISO)), [store.entries]);
+  const lastPrice = sortedEntries.length ? sortedEntries[sortedEntries.length - 1].pricePerL : null;
+  const prevPrice = sortedEntries.length >= 2 ? sortedEntries[sortedEntries.length - 2].pricePerL : null;
   const priceDiff = lastPrice !== null && prevPrice !== null ? lastPrice - prevPrice : null;
 
   const yearEntries = store.entries.filter((e) => {
-    if (e.vehicleId !== vehicle?.id) return false;
     const d = parseISO(e.dateISO);
     return d && d.getFullYear() === now.getFullYear();
   });
 
   const upcoming = (store.events || []).
-  filter((e) => e.vehicleId === vehicle?.id).
   map((e) => ({ ...e, days: daysUntil(e.endISO) })).
   filter((e) => e.days >= 0 && e.days <= 30).
   sort((a, b) => a.days - b.days);
@@ -1435,8 +1350,6 @@ function OzetScreen() {
   const animLastSpend = useCountUp(last ? last.liters * last.pricePerL : 0);
   const animYearSpend = useCountUp(yearSpend);
 
-  if (!vehicle) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-2)' }}>Önce araç ekleyin</div>;
-
   return (
     <div>
       <div className="app-header">
@@ -1447,9 +1360,8 @@ function OzetScreen() {
       <div className="title-row">
         <div className="title-block">
           <h1>Özet</h1>
-          <div className="sub">{store.vehicles.length} araç takip ediliyor</div>
+          <div className="sub">{myEntries.length} dolum kaydı</div>
         </div>
-        <VehiclePill />
       </div>
 
       <div className="hero">
@@ -1560,7 +1472,6 @@ function OzetScreen() {
 /* ── Geçmiş ────────────────────────────────────────────── */
 function GecmisScreen({ onEdit }) {
   const store = useStore();
-  const [vehicleFilter, setVehicleFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState('all');
 
   const filtered = useMemo(() => {
@@ -1569,25 +1480,23 @@ function GecmisScreen({ onEdit }) {
     const thisYear = `${now.getFullYear()}`;
     const d3m = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()).toISOString().slice(0, 10);
     let xs = [...store.entries];
-    if (vehicleFilter !== 'all') xs = xs.filter((e) => e.vehicleId === vehicleFilter);
     if (timeFilter === 'month') xs = xs.filter((e) => e.dateISO.startsWith(thisMonth));
     else if (timeFilter === '3month') xs = xs.filter((e) => e.dateISO >= d3m);
     else if (timeFilter === 'year') xs = xs.filter((e) => e.dateISO.startsWith(thisYear));
     return xs.sort((a, b) => b.dateISO.localeCompare(a.dateISO));
-  }, [store.entries, vehicleFilter, timeFilter]);
+  }, [store.entries, timeFilter]);
 
-  const priceVehicleId = vehicleFilter === 'all' ? store.activeVehicleId : vehicleFilter;
   const priceHist = useMemo(() => {
     const now = new Date();
     const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const thisYear = `${now.getFullYear()}`;
     const d3m = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()).toISOString().slice(0, 10);
-    let xs = store.entries.filter((e) => e.vehicleId === priceVehicleId);
+    let xs = [...store.entries];
     if (timeFilter === 'month') xs = xs.filter((e) => e.dateISO.startsWith(thisMonth));
     else if (timeFilter === '3month') xs = xs.filter((e) => e.dateISO >= d3m);
     else if (timeFilter === 'year') xs = xs.filter((e) => e.dateISO.startsWith(thisYear));
     return xs.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-  }, [store.entries, priceVehicleId, timeFilter]);
+  }, [store.entries, timeFilter]);
 
   const timePills = [
     { key: 'all', label: 'Tümü' },
@@ -1615,14 +1524,6 @@ function GecmisScreen({ onEdit }) {
             <button key={p.key} className={`filter-pill${timeFilter === p.key ? ' active' : ''}`} onClick={() => setTimeFilter(p.key)}>{p.label}</button>
           ))}
         </div>
-        {store.vehicles.length > 1 && (
-          <div className="filter-row">
-            <button className={`filter-pill${vehicleFilter === 'all' ? ' active' : ''}`} onClick={() => setVehicleFilter('all')}>Tüm araçlar</button>
-            {store.vehicles.map((v) => (
-              <button key={v.id} className={`filter-pill${vehicleFilter === v.id ? ' active' : ''}`} onClick={() => setVehicleFilter(v.id)}>{v.name}</button>
-            ))}
-          </div>
-        )}
       </div>
 
       {priceHist.length >= 2 &&
@@ -1716,14 +1617,13 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
           onAction={onAddEvent}
         /> :
         events.map((e) => {
-          const v = store.vehicles.find((x) => x.id === e.vehicleId);
           return (
             <div className="upcoming-row" key={e.id}>
               <div className="left">
                 <div className="iconbox">{e.type === 'Kasko' || e.type === 'Sigorta' ? <Icon.Shield /> : <Icon.Wrench />}</div>
                 <div>
                   <div className="name">{e.type}</div>
-                  <div className="date">{e.startISO && `${fmtDate(e.startISO)} → `}{fmtDate(e.endISO)}{v ? ` · ${v.name}` : ''}</div>
+                  <div className="date">{e.startISO && `${fmtDate(e.startISO)} → `}{fmtDate(e.endISO)}</div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
@@ -1739,7 +1639,7 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
 }
 
 /* ── Ayarlar ───────────────────────────────────────────── */
-function AyarlarScreen({ theme, setTheme, onEditVehicle, onAddVehicle }) {
+function AyarlarScreen({ theme, setTheme }) {
   const store = useStore();
   const [bildirim, setBildirim] = useState(true);
 
@@ -1752,7 +1652,7 @@ function AyarlarScreen({ theme, setTheme, onEditVehicle, onAddVehicle }) {
       <div className="title-row">
         <div className="title-block">
           <h1>Ayarlar</h1>
-          <div className="sub">Tercihler ve araçlar</div>
+          <div className="sub">Tercihler</div>
         </div>
       </div>
 
@@ -1769,29 +1669,6 @@ function AyarlarScreen({ theme, setTheme, onEditVehicle, onAddVehicle }) {
             </button>
           </div>
         </div>
-      </div>
-
-      <div className="section-title">
-        <h3>Araçlarım</h3>
-        <button className="btn-ghost" style={{ padding: '5px 10px', fontSize: 12 }} onClick={onAddVehicle}><Icon.Plus s={12} /> Ekle</button>
-      </div>
-      <div className="row-list">
-        {store.vehicles.map((v) =>
-        <div className="row" key={v.id}>
-            <div className="icon"><Icon.Car s={16} /></div>
-            <div className="meta">
-              <h5>{v.name}</h5>
-              <p>{v.fuel} · {v.plate} · {v.tank} L</p>
-            </div>
-            <div style={{ display: 'flex', gap: 2 }}>
-              <button className="btn-icon" onClick={() => onEditVehicle(v)}><Icon.Pencil /></button>
-              <button className="btn-icon" onClick={() => {
-              if (store.vehicles.length <= 1) {alert('En az 1 araç olmalı.');return;}
-              if (confirm('Bu araç ve dolum kayıtları silinsin mi?')) store.deleteVehicle(v.id);
-            }}><Icon.Trash /></button>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="section-title"><h3>Tercihler</h3></div>
@@ -1820,7 +1697,6 @@ function AyarlarScreen({ theme, setTheme, onEditVehicle, onAddVehicle }) {
 function EntrySheet({ open, onClose, editing }) {
   const store = useStore();
   const isEdit = !!editing;
-  const [vehicleId, setVehicleId] = useState(store.activeVehicleId);
   const [dateISO, setDateISO] = useState(todayISO());
   const [liters, setLiters] = useState('');
   const [pricePerL, setPricePerL] = useState('');
@@ -1831,7 +1707,6 @@ function EntrySheet({ open, onClose, editing }) {
   useEffect(() => {
     if (!open) return;
     if (editing) {
-      setVehicleId(editing.vehicleId);
       setDateISO(editing.dateISO);
       setLiters(fmt(editing.liters, 2));
       setPricePerL(fmt(editing.pricePerL, 2));
@@ -1839,21 +1714,20 @@ function EntrySheet({ open, onClose, editing }) {
       setStation(editing.station || '');
       setFull(!!editing.full);
     } else {
-      setVehicleId(store.activeVehicleId);
       setDateISO(todayISO());
-      setLiters('');setPricePerL('');setKm('');setStation('');setFull(true);
+      setLiters(''); setPricePerL(''); setKm(''); setStation(''); setFull(true);
     }
-  }, [open, editing, store.activeVehicleId]);
+  }, [open, editing]);
 
   const total = useMemo(() => parseNum(liters) * parseNum(pricePerL), [liters, pricePerL]);
   if (!open) return null;
 
   const submit = () => {
-    const l = parseNum(liters),p = parseNum(pricePerL);
+    const l = parseNum(liters), p = parseNum(pricePerL);
     const k = parseInt(String(km).replace(/[^0-9]/g, ''), 10) || 0;
-    if (!vehicleId || l <= 0 || p <= 0 || k <= 0) {alert('Eksik alan var.');return;}
-    const payload = { vehicleId, dateISO, liters: l, pricePerL: p, km: k, station: station.trim(), full };
-    if (isEdit) store.updateEntry(editing.id, payload);else
+    if (l <= 0 || p <= 0 || k <= 0) { alert('Eksik alan var.'); return; }
+    const payload = { dateISO, liters: l, pricePerL: p, km: k, station: station.trim(), full };
+    if (isEdit) store.updateEntry(editing.id, payload); else
     store.addEntry(payload);
     onClose();
   };
@@ -1868,12 +1742,7 @@ function EntrySheet({ open, onClose, editing }) {
         </div>
         <div className="modal-sub">{isEdit ? 'Bu kaydı düzenle' : 'Anlık dolumu ekle · ondalık için virgül'}</div>
 
-        <div className="label">Araç</div>
-        <select className="select" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
-          {store.vehicles.map((v) => <option key={v.id} value={v.id}>{v.name} · {v.plate}</option>)}
-        </select>
-
-        <div className="label" style={{ marginTop: 14 }}>Tarih</div>
+        <div className="label">Tarih</div>
         <input className="input mono" type="date" value={dateISO} onChange={(e) => setDateISO(e.target.value)} />
 
         <div className="label" style={{ marginTop: 14 }}>Kilometre</div>
@@ -1914,58 +1783,10 @@ function EntrySheet({ open, onClose, editing }) {
 
 }
 
-function VehicleSheet({ open, onClose, editing }) {
-  const store = useStore();
-  const isEdit = !!editing;
-  const [name, setName] = useState('');
-  const [plate, setPlate] = useState('');
-  const [fuel, setFuel] = useState('Dizel');
-  const [tank, setTank] = useState('45');
-
-  useEffect(() => {
-    if (!open) return;
-    if (editing) {setName(editing.name || '');setPlate(editing.plate || '');setFuel(editing.fuel || 'Dizel');setTank(String(editing.tank || 45));} else
-    {setName('');setPlate('');setFuel('Dizel');setTank('45');}
-  }, [open, editing]);
-
-  if (!open) return null;
-  const submit = () => {
-    if (!name.trim()) {alert('Ad gerekli.');return;}
-    const payload = { name: name.trim(), plate: plate.trim(), fuel, tank: parseFloat(tank) || 45 };
-    if (isEdit) store.updateVehicle(editing.id, payload);else
-    store.addVehicle(payload);
-    onClose();
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-handle" />
-        <div className="modal-head"><h2>{isEdit ? 'Aracı düzenle' : 'Yeni araç'}</h2><button className="btn-icon" onClick={onClose}><Icon.X /></button></div>
-        <div className="modal-sub">{isEdit ? 'Araç bilgilerini düzenle' : 'Yeni araç ekle'}</div>
-        <div className="label">Ad</div>
-        <input className="input" placeholder="Polo" value={name} onChange={(e) => setName(e.target.value)} />
-        <div className="label" style={{ marginTop: 12 }}>Plaka</div>
-        <input className="input" placeholder="34 ABC 123" value={plate} onChange={(e) => setPlate(e.target.value)} />
-        <div className="label" style={{ marginTop: 12 }}>Yakıt</div>
-        <div className="chip-group">
-          {['Dizel', 'Benzin', 'LPG', 'Elektrik', 'Hibrit'].map((f) =>
-          <button key={f} className={`chip-btn ${fuel === f ? 'active' : ''}`} onClick={() => setFuel(f)}>{f}</button>
-          )}
-        </div>
-        <div className="label" style={{ marginTop: 12 }}>Depo (L)</div>
-        <input className="input mono" inputMode="numeric" value={tank} onChange={(e) => setTank(e.target.value.replace(/[^0-9]/g, ''))} />
-        <button className="btn btn-primary" style={{ width: '100%', marginTop: 18 }} onClick={submit}>{isEdit ? 'Güncelle' : 'Kaydet'}</button>
-      </div>
-    </div>);
-
-}
-
 function EventSheet({ open, onClose, editing }) {
   const store = useStore();
   const isEdit = !!editing;
   const [type, setType] = useState('Kasko');
-  const [vehicleId, setVehicleId] = useState(store.activeVehicleId);
   const [startISO, setStartISO] = useState(todayISO());
   const [endISO, setEndISO] = useState('');
   const [notifyDays, setNotifyDays] = useState(15);
@@ -1974,25 +1795,23 @@ function EventSheet({ open, onClose, editing }) {
     if (!open) return;
     if (editing) {
       setType(editing.type || 'Kasko');
-      setVehicleId(editing.vehicleId);
       setStartISO(editing.startISO || todayISO());
       setEndISO(editing.endISO || '');
       setNotifyDays(editing.notifyDays || 15);
     } else {
       setType('Kasko');
-      setVehicleId(store.activeVehicleId);
       setStartISO(todayISO());
-      const d = new Date();d.setFullYear(d.getFullYear() + 1);
+      const d = new Date(); d.setFullYear(d.getFullYear() + 1);
       setEndISO(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
       setNotifyDays(15);
     }
-  }, [open, editing, store.activeVehicleId]);
+  }, [open, editing]);
 
   if (!open) return null;
   const submit = () => {
-    if (!endISO) {alert('Bitiş tarihi gerekli.');return;}
-    const payload = { type, vehicleId, startISO, endISO, notifyDays };
-    if (isEdit) store.updateEvent(editing.id, payload);else
+    if (!endISO) { alert('Bitiş tarihi gerekli.'); return; }
+    const payload = { type, startISO, endISO, notifyDays };
+    if (isEdit) store.updateEvent(editing.id, payload); else
     store.addEvent(payload);
     onClose();
   };
@@ -2009,10 +1828,6 @@ function EventSheet({ open, onClose, editing }) {
           <button key={t} className={`chip-btn ${type === t ? 'active' : ''}`} onClick={() => setType(t)}>{t}</button>
           )}
         </div>
-        <div className="label" style={{ marginTop: 14 }}>Araç</div>
-        <select className="select" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
-          {store.vehicles.map((v) => <option key={v.id} value={v.id}>{v.name} · {v.plate}</option>)}
-        </select>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
           <div>
             <div className="label">Başlangıç</div>
@@ -2040,7 +1855,6 @@ function App() {
   const [screen, setScreen] = useState('ozet');
   const [theme, setTheme] = useState('dark');
   const [entrySheet, setEntrySheet] = useState({ open: false, editing: null });
-  const [vehicleSheet, setVehicleSheet] = useState({ open: false, editing: null });
   const [eventSheet, setEventSheet] = useState({ open: false, editing: null });
 
   return (
@@ -2062,7 +1876,7 @@ function App() {
                 {screen === 'ozet' && <OzetScreen />}
                 {screen === 'gecmis' && <GecmisScreen onEdit={(e) => setEntrySheet({ open: true, editing: e })} />}
                 {screen === 'takvim' && <TakvimScreen onAddEvent={() => setEventSheet({ open: true, editing: null })} onEditEvent={(e) => setEventSheet({ open: true, editing: e })} />}
-                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} onAddVehicle={() => setVehicleSheet({ open: true, editing: null })} onEditVehicle={(v) => setVehicleSheet({ open: true, editing: v })} />}
+                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} />}
               </div>
             </div>
             <nav className="bottom-nav">
@@ -2075,7 +1889,6 @@ function App() {
             <div className="ios-home-indicator" />
           </div>
           <EntrySheet open={entrySheet.open} editing={entrySheet.editing} onClose={() => setEntrySheet({ open: false, editing: null })} />
-          <VehicleSheet open={vehicleSheet.open} editing={vehicleSheet.editing} onClose={() => setVehicleSheet({ open: false, editing: null })} />
           <EventSheet open={eventSheet.open} editing={eventSheet.editing} onClose={() => setEventSheet({ open: false, editing: null })} />
         </div>
       </div>
