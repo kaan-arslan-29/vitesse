@@ -1171,7 +1171,7 @@ function averageConsumption(pts) {
 }
 
 /* ── Area Chart ────────────────────────────────────────── */
-function AreaChart({ data, labels, unit = '' }) {
+function AreaChart({ data, labels, unit = '', decimals = 2 }) {
   const [active, setActive] = useState(null);
   if (!data || data.length < 2) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-2)', fontSize: 13 }}>Yetersiz veri</div>;
   const W = 320, H = 160;
@@ -1270,7 +1270,7 @@ function AreaChart({ data, labels, unit = '' }) {
                 <g>
                   <rect x={tx} y={ty} width={tooltipW} height={tooltipH} rx="8" fill="var(--surface-2)" stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.4" />
                   <text x={tx + tooltipW / 2} y={ty + 13} fontSize="9" textAnchor="middle" fill="var(--text-2)" fontFamily="Geist, sans-serif">{dateStr}</text>
-                  <text x={tx + tooltipW / 2} y={ty + 28} fontSize="12" fontWeight="600" textAnchor="middle" fill="var(--accent)" fontFamily="Geist Mono, monospace">{fmt(data[i], 2)} {unit}</text>
+                  <text x={tx + tooltipW / 2} y={ty + 28} fontSize="12" fontWeight="600" textAnchor="middle" fill="var(--accent)" fontFamily="Geist Mono, monospace">{fmt(data[i], decimals)} {unit}</text>
                 </g>
               );
             })()}
@@ -1429,7 +1429,7 @@ function OzetScreen() {
           }
         </div>
         <div className="hero-big-row">
-          <span className="hero-big">{avgCons !== null ? fmt(animAvgCons, 2) : '—'}</span>
+          <span className="hero-big">{avgCons !== null ? fmt(animAvgCons, 1) : '—'}</span>
           <span className="hero-unit">L/100km</span>
         </div>
         <div className="hero-sub">{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
@@ -1486,7 +1486,7 @@ function OzetScreen() {
             <span className="meta">Son {consPts.length} dolum · L/100km</span>
           </div>
           <div className="chart-card">
-            <AreaChart data={consPts.map((p) => p.consumption)} labels={consPts.map((p) => p.dateISO)} unit="L/100km" />
+            <AreaChart data={consPts.map((p) => p.consumption)} labels={consPts.map((p) => p.dateISO)} unit="L/100km" decimals={1} />
           </div>
         </>
       }
