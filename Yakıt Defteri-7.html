@@ -1547,10 +1547,10 @@ function GecmisScreen({ onEdit }) {
       {filtered.length === 0 ? (
         <EmptyState
           icon={<Icon.Fuel s={28} />}
-          title="Henüz dolum kaydı yok"
-          sub="İlk dolumunu ekleyerek yakıt tüketimini takip etmeye başla."
-          action={<><Icon.Plus s={14} /> Dolum ekle</>}
-          onAction={() => document.querySelector('.fab')?.click()}
+          title={timeFilter === 'all' ? 'Henüz dolum kaydı yok' : 'Bu dönemde kayıt yok'}
+          sub={timeFilter === 'all' ? 'İlk dolumunu ekleyerek yakıt tüketimini takip etmeye başla.' : 'Seçili zaman aralığında dolum kaydı bulunmuyor.'}
+          action={timeFilter === 'all' ? <><Icon.Plus s={14} /> Dolum ekle</> : null}
+          onAction={timeFilter === 'all' ? () => document.querySelector('.fab')?.click() : null}
         />
       ) : (
       <div className="entry-list">
