@@ -1367,17 +1367,10 @@ function OzetScreen() {
     return totalKm > 0 ? totalTL / totalKm : null;
   }, [store.entries, vehicle, consPts]);
 
-  const tankPct = useMemo(() => {
-    if (!vehicle || avgCons === null) return 78;
-    const sorted = store.entries.filter((e) => e.vehicleId === vehicle.id).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-    const lastFull = [...sorted].reverse().find((e) => e.full);
-    if (!lastFull) return 78;
-    const newest = sorted[sorted.length - 1];
-    const kmDriven = newest.km - lastFull.km;
-    const litersUsed = kmDriven * avgCons / 100;
-    return Math.max(8, Math.min(100, 100 - litersUsed / vehicle.tank * 100));
-  }, [store.entries, vehicle, avgCons]);
-  const tankRound = Math.round(tankPct);
+  const sortedVehicleEntries = useMemo(() => store.entries.filter((e) => e.vehicleId === vehicle?.id).sort((a, b) => a.dateISO.localeCompare(b.dateISO)), [store.entries, vehicle]);
+  const lastPrice = sortedVehicleEntries.length ? sortedVehicleEntries[sortedVehicleEntries.length - 1].pricePerL : null;
+  const prevPrice = sortedVehicleEntries.length >= 2 ? sortedVehicleEntries[sortedVehicleEntries.length - 2].pricePerL : null;
+  const priceDiff = lastPrice !== null && prevPrice !== null ? lastPrice - prevPrice : null;
 
   const yearEntries = store.entries.filter((e) => {
     if (e.vehicleId !== vehicle?.id) return false;
@@ -1435,11 +1428,10 @@ function OzetScreen() {
         <div className="hero-sub">{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
 
         <div className="tank-row">
-          <span className="label">Tahmini depo</span>
+          <span className="label">Litre fiyatı</span>
           <span className="value">
-            <span className="num">~{Math.round(vehicle.tank * tankPct / 100)}</span><span className="u">L</span>
-            <span className="sep">·</span>
-            <span className="num">{tankRound}%</span>
+            {lastPrice ? <><span className="num">{fmt(lastPrice, 2)}</span><span className="u">₺/L</span></> : <span className="num">—</span>}
+            {priceDiff !== null && <span style={{ fontSize: 11, marginLeft: 6, color: priceDiff > 0.01 ? '#c45f5f' : priceDiff < -0.01 ? '#5dba7d' : 'var(--text-2)' }}>{priceDiff > 0.01 ? '▲' : priceDiff < -0.01 ? '▼' : '='} {Math.abs(priceDiff).toFixed(2)}</span>}
           </span>
         </div>
       </div>
