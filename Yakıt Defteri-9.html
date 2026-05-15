@@ -1173,7 +1173,8 @@ function StoreProvider({ children }) {
     addEvent: (e) => setData((d) => ({ ...d, events: [...d.events, { ...e, id: uid() }] })),
     updateEvent: (id, p) => setData((d) => ({ ...d, events: d.events.map((e) => e.id === id ? { ...e, ...p } : e) })),
     deleteEvent: (id) => setData((d) => ({ ...d, events: d.events.filter((e) => e.id !== id) })),
-    resetToSeed: () => setData(SEED)
+    resetToSeed: () => setData(SEED),
+    loadData: (d) => setData(d),
   }), []);
   const value = useMemo(() => ({ ...data, ...actions }), [data, actions]);
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
@@ -1387,6 +1388,16 @@ function OzetScreen() {
   const prevPrice = sortedEntries.length >= 2 ? sortedEntries[sortedEntries.length - 2].pricePerL : null;
   const priceDiff = lastPrice !== null && prevPrice !== null ? lastPrice - prevPrice : null;
 
+  const avgKmPerFill = useMemo(() => {
+    if (sortedEntries.length < 2) return null;
+    const diffs = [];
+    for (let i = 1; i < sortedEntries.length; i++) {
+      const d = sortedEntries[i].km - sortedEntries[i - 1].km;
+      if (d > 0) diffs.push(d);
+    }
+    return diffs.length ? Math.round(diffs.reduce((s, d) => s + d, 0) / diffs.length) : null;
+  }, [sortedEntries]);
+
   const yearEntries = store.entries.filter((e) => {
     const d = parseISO(e.dateISO);
     return d && d.getFullYear() === now.getFullYear();
@@ -1438,8 +1449,13 @@ function OzetScreen() {
 
         <div className="tank-row">
           <span className="label">Son dolumda ödenen</span>
-          <span className="value">
+          <span className="value" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {lastPrice ? <><span className="num">{fmt(lastPrice, 2)}</span><span className="u">₺/L</span></> : <span className="num">—</span>}
+            {priceDiff !== null && (
+              <span style={{ fontSize: 12, fontWeight: 600, color: priceDiff > 0 ? 'var(--negative)' : 'var(--positive)', background: priceDiff > 0 ? 'rgba(248,113,113,0.12)' : 'rgba(74,222,128,0.12)', borderRadius: 6, padding: '2px 6px' }}>
+                {priceDiff > 0 ? '↑' : '↓'} {fmt(Math.abs(priceDiff), 2)}
+              </span>
+            )}
           </span>
         </div>
       </div>
@@ -1459,7 +1475,7 @@ function OzetScreen() {
             <span className="icon"><Icon.Gauge /></span>
           </div>
           <div className="value">{tlPerKm !== null ? fmt(animTlPerKm, 2) : '—'}<span className="u">₺/km</span></div>
-          <div className="sub">tüm zamanlar</div>
+          <div className="sub">{avgKmPerFill !== null ? `ort. ${fmtInt(avgKmPerFill)} km/dolum` : 'tüm zamanlar'}</div>
         </div>
         <div className="stat-card">
           <div className="top">
@@ -1775,6 +1791,25 @@ function AyarlarScreen({ theme, setTheme }) {
   const store = useStore();
   const confirm = useConfirm();
   const [bildirim, setBildirim] = useState(true);
+  const [importError, setImportError] = useState('');
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!Array.isArray(parsed.entries)) throw new Error();
+        store.loadData({ entries: parsed.entries, events: Array.isArray(parsed.events) ? parsed.events : [] });
+        setImportError('');
+      } catch {
+        setImportError('Geçersiz dosya. Lütfen dışa aktarılan bir JSON dosyası seçin.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   return (
     <div>
@@ -1828,6 +1863,11 @@ function AyarlarScreen({ theme, setTheme }) {
         }}>
           <Icon.Sparkle /> Verileri dışa aktar
         </button>
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: 12, marginBottom: 10, background: 'none', border: '1px solid var(--border)', borderRadius: 12, fontSize: 14, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+          <Icon.Plus s={16} /> Verileri içe aktar
+          <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+        </label>
+        {importError && <div style={{ fontSize: 12, color: 'var(--negative)', marginBottom: 10, textAlign: 'center' }}>{importError}</div>}
         <button className="btn-ghost" style={{ width: '100%', padding: 12, justifyContent: 'center', color: 'var(--text-2)' }}
         onClick={() => confirm('Tüm veriler silinecek ve örnek verilerle sıfırlanacak.', () => store.resetToSeed())}>
           <Icon.Trash /> Verileri sıfırla
@@ -1851,9 +1891,11 @@ function EntrySheet({ open, onClose, editing }) {
   const [km, setKm] = useState('');
   const [station, setStation] = useState('');
   const [full, setFull] = useState(true);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (!open) return;
+    setErrors({});
     if (editing) {
       setDateISO(editing.dateISO);
       setLiters(fmt(editing.liters, 2));
@@ -1873,7 +1915,11 @@ function EntrySheet({ open, onClose, editing }) {
   const submit = () => {
     const l = parseNum(liters), p = parseNum(pricePerL);
     const k = parseInt(String(km).replace(/[^0-9]/g, ''), 10) || 0;
-    if (l <= 0 || p <= 0 || k <= 0) { alert('Eksik alan var.'); return; }
+    const errs = {};
+    if (k <= 0) errs.km = 'Kilometre girilmeli';
+    if (l <= 0) errs.liters = 'Litre girilmeli';
+    if (p <= 0) errs.pricePerL = 'Fiyat girilmeli';
+    if (Object.keys(errs).length) { setErrors(errs); return; }
     const payload = { dateISO, liters: l, pricePerL: p, km: k, station: station.trim(), full };
     if (isEdit) store.updateEntry(editing.id, payload); else
     store.addEntry(payload);
@@ -1894,17 +1940,19 @@ function EntrySheet({ open, onClose, editing }) {
         <input className="input mono" type="date" value={dateISO} onChange={(e) => setDateISO(e.target.value)} />
 
         <div className="label" style={{ marginTop: 14 }}>Kilometre</div>
-        <input className="input mono" inputMode="numeric" placeholder="örn. 146200" value={km} onChange={(e) => setKm(e.target.value.replace(/[^0-9]/g, ''))} />
-        {!isEdit && lastKm !== null && <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 4, paddingLeft: 2 }}>Son kayıt: {fmtInt(lastKm)} km</div>}
+        <input className="input mono" inputMode="numeric" placeholder="örn. 146200" value={km} onChange={(e) => { setKm(e.target.value.replace(/[^0-9]/g, '')); setErrors((er) => ({ ...er, km: undefined })); }} style={errors.km ? { borderColor: 'var(--negative)' } : {}} />
+        {errors.km ? <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 4, paddingLeft: 2 }}>{errors.km}</div> : (!isEdit && lastKm !== null && <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 4, paddingLeft: 2 }}>Son kayıt: {fmtInt(lastKm)} km</div>)}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
           <div>
             <div className="label">Litre</div>
-            <input className="input mono" inputMode="decimal" placeholder="0,00" value={liters} onChange={(e) => setLiters(e.target.value)} />
+            <input className="input mono" inputMode="decimal" placeholder="0,00" value={liters} onChange={(e) => { setLiters(e.target.value); setErrors((er) => ({ ...er, liters: undefined })); }} style={errors.liters ? { borderColor: 'var(--negative)' } : {}} />
+            {errors.liters && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 4 }}>{errors.liters}</div>}
           </div>
           <div>
             <div className="label">₺ / Litre</div>
-            <input className="input mono" inputMode="decimal" placeholder="0,00" value={pricePerL} onChange={(e) => setPricePerL(e.target.value)} />
+            <input className="input mono" inputMode="decimal" placeholder="0,00" value={pricePerL} onChange={(e) => { setPricePerL(e.target.value); setErrors((er) => ({ ...er, pricePerL: undefined })); }} style={errors.pricePerL ? { borderColor: 'var(--negative)' } : {}} />
+            {errors.pricePerL && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 4 }}>{errors.pricePerL}</div>}
           </div>
         </div>
 
