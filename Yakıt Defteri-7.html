@@ -1573,7 +1573,7 @@ function GecmisScreen({ onEdit }) {
           const totalSpend = filtered.reduce((s, e) => s + e.liters * e.pricePerL, 0);
           const totalL = filtered.reduce((s, e) => s + e.liters, 0);
           const avgPrice = totalL > 0 ? totalSpend / totalL : 0;
-          return <span className="meta">{fmt(totalSpend, 0)} ₺ · ort. {fmt(avgPrice, 2)} ₺/L</span>;
+          return <span className="meta">{fmt(totalSpend, 0)} ₺ · {fmt(totalL, 1)} L</span>;
         })()}
       </div>
       {filtered.length === 0 ? (
