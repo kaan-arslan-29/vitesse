@@ -1568,7 +1568,7 @@ function GecmisScreen({ onEdit }) {
       }
 
       <div className="section-title">
-        <h3>Tüm Dolumlar</h3>
+        <h3>{{ all: 'Tüm Dolumlar', month: 'Bu Ayki Dolumlar', '3month': 'Son 3 Aylık Dolumlar', year: 'Bu Yılki Dolumlar' }[timeFilter]}</h3>
       </div>
       {filtered.length === 0 ? (
         <EmptyState
