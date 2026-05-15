@@ -611,6 +611,13 @@ body {
   font-weight: 500;
 }
 .btn-ghost:hover { background: var(--surface-2); }
+.btn-danger {
+  background: var(--color-bad);
+  color: #fff;
+  padding: 14px 22px;
+  font-size: 14px;
+}
+.btn-danger:active { transform: scale(0.98); }
 .btn-icon {
   background: transparent;
   border: none;
@@ -1175,6 +1182,33 @@ function StoreProvider({ children }) {
 }
 const useStore = () => useContext(StoreCtx);
 
+/* ── Confirm ───────────────────────────────────────────── */
+const ConfirmCtx = createContext(null);
+function ConfirmProvider({ children }) {
+  const [state, setState] = useState({ open: false, message: '', onConfirm: null });
+  const ask = (message, onConfirm) => setState({ open: true, message, onConfirm });
+  const close = () => setState((s) => ({ ...s, open: false }));
+  return (
+    <ConfirmCtx.Provider value={ask}>
+      {children}
+      {state.open && (
+        <div className="modal-overlay" onClick={close}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ paddingBottom: 28 }}>
+            <div className="modal-handle" />
+            <div className="modal-head"><h2>Emin misin?</h2></div>
+            <div className="modal-sub">{state.message}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              <button className="btn btn-danger" style={{ width: '100%' }} onClick={() => { state.onConfirm(); close(); }}>Sil</button>
+              <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={close}>İptal</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </ConfirmCtx.Provider>
+  );
+}
+const useConfirm = () => useContext(ConfirmCtx);
+
 /* ── Stats ─────────────────────────────────────────────── */
 function consumptionPoints(entries) {
   const xs = [...entries].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
@@ -1504,6 +1538,7 @@ function OzetScreen() {
 /* ── Geçmiş ────────────────────────────────────────────── */
 function GecmisScreen({ onEdit }) {
   const store = useStore();
+  const confirm = useConfirm();
   const [timeFilter, setTimeFilter] = useState('all');
 
   const filtered = useMemo(() => {
@@ -1625,7 +1660,7 @@ function GecmisScreen({ onEdit }) {
                     <div className="total">{fmt(e.liters * e.pricePerL, 2)}<span className="u">₺</span></div>
                     <div className="icons">
                       <button className="btn-icon" onClick={() => onEdit(e)}><Icon.Pencil /></button>
-                      <button className="btn-icon" onClick={() => { if (confirm('Silinsin mi?')) store.deleteEntry(e.id); }}><Icon.Trash /></button>
+                      <button className="btn-icon" onClick={() => confirm('Bu dolum kaydı kalıcı olarak silinecek.', () => store.deleteEntry(e.id))}><Icon.Trash /></button>
                     </div>
                   </div>
                 </div>
@@ -1642,6 +1677,7 @@ function GecmisScreen({ onEdit }) {
 /* ── Takvim ────────────────────────────────────────────── */
 function TakvimScreen({ onAddEvent, onEditEvent }) {
   const store = useStore();
+  const confirm = useConfirm();
   const events = (store.events || []).map((e) => ({ ...e, days: daysUntil(e.endISO) })).sort((a, b) => a.days - b.days);
 
   return (
@@ -1681,7 +1717,7 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
                 <button className="btn-icon" onClick={() => onEditEvent(e)}><Icon.Pencil /></button>
-                <button className="btn-icon" onClick={() => {if (confirm('Silinsin mi?')) store.deleteEvent(e.id);}}><Icon.Trash /></button>
+                <button className="btn-icon" onClick={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}><Icon.Trash /></button>
               </div>
             </div>);
 
@@ -1694,6 +1730,7 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
 /* ── Ayarlar ───────────────────────────────────────────── */
 function AyarlarScreen({ theme, setTheme }) {
   const store = useStore();
+  const confirm = useConfirm();
   const [bildirim, setBildirim] = useState(true);
 
   return (
@@ -1738,7 +1775,7 @@ function AyarlarScreen({ theme, setTheme }) {
 
       <div style={{ padding: '22px' }}>
         <button className="btn-ghost" style={{ width: '100%', padding: 12, justifyContent: 'center', color: 'var(--text-2)' }}
-        onClick={() => {if (confirm('Tüm veriler sıfırlansın mı?')) store.resetToSeed();}}>
+        onClick={() => confirm('Tüm veriler silinecek ve örnek verilerle sıfırlanacak.', () => store.resetToSeed())}>
           <Icon.Trash /> Verileri sıfırla
         </button>
       </div>
@@ -1911,7 +1948,7 @@ function App() {
   const [eventSheet, setEventSheet] = useState({ open: false, editing: null });
 
   return (
-    <StoreProvider>
+    <StoreProvider><ConfirmProvider>
       <div className="ios-device">
         <div className="ios-screen">
           <div className="ios-dynamic-island" />
@@ -1945,7 +1982,7 @@ function App() {
           <EventSheet open={eventSheet.open} editing={eventSheet.editing} onClose={() => setEventSheet({ open: false, editing: null })} />
         </div>
       </div>
-    </StoreProvider>);
+    </ConfirmProvider></StoreProvider>);
 
 }
 
