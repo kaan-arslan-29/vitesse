@@ -1309,12 +1309,6 @@ function AreaChart({ data, labels, unit = '', decimals = 2, showAvg = true }) {
         );
       })}
       <path d={areaPath} fill="url(#areaGrad)" className="chart-area" />
-      {/* Ortalama çizgisi */}
-      {showAvg && <>
-        <line x1={pad.l} y1={avgY} x2={W - pad.r} y2={avgY} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="5 4" />
-        <rect x={W / 2 - 31} y={avgY - 19} width={62} height={14} rx="7" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
-        <text x={W / 2} y={avgY - 9} fontSize="10" textAnchor="middle" fill="var(--text-subtle)" fontFamily="Geist Mono, monospace">ort: {fmt(avg, 1)}</text>
-      </>}
       <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" className="chart-line" />
       {xs.map((x, i) => {
         const isActive = active === i;
@@ -1343,6 +1337,12 @@ function AreaChart({ data, labels, unit = '', decimals = 2, showAvg = true }) {
           </g>
         );
       })}
+      {/* Ortalama çizgisi */}
+      {showAvg && <>
+        <line x1={pad.l} y1={avgY} x2={W - pad.r} y2={avgY} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="5 4" />
+        <rect x={W / 2 - 31} y={avgY - 19} width={62} height={14} rx="7" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" strokeWidth="0.8" />
+        <text x={W / 2} y={avgY - 9} fontSize="10" textAnchor="middle" fill="var(--text-subtle)" fontFamily="Geist Mono, monospace">ort: {fmt(avg, 1)}</text>
+      </>}
     </svg>
   );
 }
