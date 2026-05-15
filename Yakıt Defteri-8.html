@@ -1477,7 +1477,7 @@ function OzetScreen() {
             <span className="icon"><Icon.Receipt /></span>
           </div>
           <div className="value">{last ? fmt(animLastSpend, 2) : '—'}<span className="u">₺</span></div>
-          <div className="sub">{last ? `${fmtDate(last.dateISO)} · ${fmt(last.liters, 2)} L` : '—'}</div>
+          <div className="sub">{last ? `${fmtDate(last.dateISO)} · ${fmt(last.liters, 1)} L` : '—'}</div>
         </div>
         <div className="stat-card">
           <div className="top">
@@ -1646,7 +1646,7 @@ function GecmisScreen({ onEdit }) {
                   </div>
                   <div className="entry-mid">
                     <div className="entry-top">
-                      <span className="liters">{fmt(e.liters, 2)} L</span>
+                      <span className="liters">{fmt(e.liters, 1)} L</span>
                       <span className={`entry-chip ${e.full ? 'full' : 'partial'}`}>{e.full ? 'Tam' : 'Yarım'}</span>
                     </div>
                     <div className="entry-bot">
