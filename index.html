@@ -1258,7 +1258,7 @@ function AreaChart({ data, labels, unit = '' }) {
         const strokeColor = isMin ? '#5dba7d' : isMax ? '#c45f5f' : 'var(--accent)';
         return (
           <g key={i} style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setActive(active === i ? null : i); }}>
-            <circle cx={x} cy={ys[i]} r={isActive || isMin || isMax ? 5 : 3.5} fill={dotColor} stroke={strokeColor} strokeWidth="2" className="chart-dot" style={{ transition: 'r 0.15s', animationDelay: `${0.6 + i * 0.04}s` }} />
+            <circle cx={x} cy={ys[i]} r={isActive || isMin || isMax ? 5 : 3.5} fill={dotColor} stroke={strokeColor} strokeWidth="2" className="chart-dot" style={{ transition: 'r 0.15s', animationDelay: `${0.35 + i * 0.04}s` }} />
             {isActive && labels && (() => {
               const tooltipW = 90, tooltipH = 38;
               const tx = Math.min(Math.max(x - tooltipW / 2, pad.l), W - pad.r - tooltipW);
