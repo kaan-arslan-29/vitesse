@@ -829,11 +829,11 @@ body {
 .chart-line {
   stroke-dasharray: 800;
   stroke-dashoffset: 800;
-  animation: drawLine 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: drawLine 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 .chart-area {
   opacity: 0;
-  animation: fadeArea 0.8s ease 0.6s forwards;
+  animation: fadeArea 0.5s ease 0.35s forwards;
 }
 .chart-dot {
   opacity: 0;
@@ -1258,7 +1258,7 @@ function AreaChart({ data, labels, unit = '' }) {
         const strokeColor = isMin ? '#5dba7d' : isMax ? '#c45f5f' : 'var(--accent)';
         return (
           <g key={i} style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setActive(active === i ? null : i); }}>
-            <circle cx={x} cy={ys[i]} r={isActive || isMin || isMax ? 5 : 3.5} fill={dotColor} stroke={strokeColor} strokeWidth="2" className="chart-dot" style={{ transition: 'r 0.15s', animationDelay: `${1 + i * 0.06}s` }} />
+            <circle cx={x} cy={ys[i]} r={isActive || isMin || isMax ? 5 : 3.5} fill={dotColor} stroke={strokeColor} strokeWidth="2" className="chart-dot" style={{ transition: 'r 0.15s', animationDelay: `${0.6 + i * 0.04}s` }} />
             {isActive && labels && (() => {
               const tooltipW = 90, tooltipH = 38;
               const tx = Math.min(Math.max(x - tooltipW / 2, pad.l), W - pad.r - tooltipW);
