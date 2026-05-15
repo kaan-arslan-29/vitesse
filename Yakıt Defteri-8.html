@@ -1659,9 +1659,10 @@ function GecmisScreen({ onEdit }) {
                     </div>
                     <div className="entry-bot">
                       <span className="price">{fmt(e.pricePerL, 2)} ₺/L</span>
-                      <span className="sep">·</span>
+                      {consumptionMap.has(e.id) && <><span className="sep">·</span><span>{fmt(consumptionMap.get(e.id), 1)} L/100km</span></>}
+                    </div>
+                    <div className="entry-bot" style={{ marginTop: 1 }}>
                       <span>{fmtInt(e.km)} km</span>
-                      {consumptionMap.has(e.id) && <><span className="sep">·</span><span>{fmt(consumptionMap.get(e.id), 1)} L/100</span></>}
                       {e.station && <><span className="sep">·</span><span>{e.station}</span></>}
                     </div>
                   </div>
