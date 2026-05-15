@@ -1390,10 +1390,12 @@ function OzetScreen() {
   filter((e) => e.days >= 0 && e.days <= 30).
   sort((a, b) => a.days - b.days);
 
+  const yearSpend = yearEntries.reduce((s, e) => s + e.liters * e.pricePerL, 0);
   const animAvgCons = useCountUp(avgCons ?? 0);
   const animMonthSpend = useCountUp(thisMonthSpend);
   const animTlPerKm = useCountUp(tlPerKm ?? 0);
   const animLastSpend = useCountUp(last ? last.liters * last.pricePerL : 0);
+  const animYearSpend = useCountUp(yearSpend);
 
   if (!vehicle) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-2)' }}>Önce araç ekleyin</div>;
 
@@ -1468,11 +1470,11 @@ function OzetScreen() {
         </div>
         <div className="stat-card">
           <div className="top">
-            <span className="label">Toplam dolum</span>
+            <span className="label">Toplam tüketim</span>
             <span className="icon"><Icon.Sparkle /></span>
           </div>
-          <div className="value">{yearEntries.length}<span className="u">kayıt</span></div>
-          <div className="sub">bu yıl</div>
+          <div className="value">{fmt(animYearSpend, 0)}<span className="u">₺</span></div>
+          <div className="sub">bu yıl · {yearEntries.length} dolum</div>
         </div>
       </div>
 
