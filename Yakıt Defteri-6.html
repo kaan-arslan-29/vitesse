@@ -815,6 +815,13 @@ body {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.screen-transition {
+  animation: screenIn 0.22s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
 @keyframes dotPop {
   from { opacity: 0; transform: scale(0); }
   to   { opacity: 1; transform: scale(1); }
@@ -1979,10 +1986,12 @@ function App() {
           </div>
           <div className="app">
             <div className="app-content">
-              {screen === 'ozet' && <OzetScreen />}
-              {screen === 'gecmis' && <GecmisScreen onEdit={(e) => setEntrySheet({ open: true, editing: e })} />}
-              {screen === 'takvim' && <TakvimScreen onAddEvent={() => setEventSheet({ open: true, editing: null })} onEditEvent={(e) => setEventSheet({ open: true, editing: e })} />}
-              {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} onAddVehicle={() => setVehicleSheet({ open: true, editing: null })} onEditVehicle={(v) => setVehicleSheet({ open: true, editing: v })} />}
+              <div key={screen} className="screen-transition">
+                {screen === 'ozet' && <OzetScreen />}
+                {screen === 'gecmis' && <GecmisScreen onEdit={(e) => setEntrySheet({ open: true, editing: e })} />}
+                {screen === 'takvim' && <TakvimScreen onAddEvent={() => setEventSheet({ open: true, editing: null })} onEditEvent={(e) => setEventSheet({ open: true, editing: e })} />}
+                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} onAddVehicle={() => setVehicleSheet({ open: true, editing: null })} onEditVehicle={(v) => setVehicleSheet({ open: true, editing: v })} />}
+              </div>
             </div>
             <nav className="bottom-nav">
               <button className={`nav-btn ${screen === 'ozet' ? 'active' : ''}`} onClick={() => setScreen('ozet')}><Icon.Home s={22} /><span>Özet</span></button>
