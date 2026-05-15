@@ -1557,22 +1557,6 @@ function GecmisScreen({ onEdit }) {
     return xs.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   }, [store.entries, timeFilter]);
 
-  const consumptionMap = useMemo(() => {
-    const xs = [...store.entries].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-    const map = new Map();
-    let lastFullIdx = -1;
-    for (let i = 0; i < xs.length; i++) {
-      if (!xs[i].full) continue;
-      if (lastFullIdx === -1) { lastFullIdx = i; continue; }
-      let liters = 0;
-      for (let j = lastFullIdx + 1; j <= i; j++) liters += xs[j].liters;
-      const km = xs[i].km - xs[lastFullIdx].km;
-      if (km > 0) map.set(xs[i].id, liters * 100 / km);
-      lastFullIdx = i;
-    }
-    return map;
-  }, [store.entries]);
-
   const timePills = [
     { key: 'all', label: 'Tümü' },
     { key: 'month', label: 'Bu ay' },
@@ -1659,9 +1643,7 @@ function GecmisScreen({ onEdit }) {
                     </div>
                     <div className="entry-bot">
                       <span className="price">{fmt(e.pricePerL, 2)} ₺/L</span>
-                      {consumptionMap.has(e.id) && <><span className="sep">·</span><span>{fmt(consumptionMap.get(e.id), 1)} L/100km</span></>}
-                    </div>
-                    <div className="entry-bot" style={{ marginTop: 1 }}>
+                      <span className="sep">·</span>
                       <span>{fmtInt(e.km)} km</span>
                       {e.station && <><span className="sep">·</span><span>{e.station}</span></>}
                     </div>
