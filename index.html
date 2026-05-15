@@ -1572,8 +1572,11 @@ function GecmisScreen({ onEdit }) {
   }, [store.entries]);
 
   const stationStats = useMemo(() => {
+    const d3m = new Date();
+    d3m.setMonth(d3m.getMonth() - 3);
+    const cutoff = d3m.toISOString().slice(0, 10);
     const map = {};
-    filtered.forEach((e) => {
+    store.entries.filter((e) => e.dateISO >= cutoff).forEach((e) => {
       if (!e.station) return;
       if (!map[e.station]) map[e.station] = { total: 0, liters: 0, count: 0 };
       map[e.station].total += e.liters * e.pricePerL;
@@ -1583,7 +1586,7 @@ function GecmisScreen({ onEdit }) {
     return Object.entries(map)
       .map(([name, s]) => ({ name, avg: s.liters > 0 ? s.total / s.liters : 0, count: s.count }))
       .sort((a, b) => a.avg - b.avg);
-  }, [filtered]);
+  }, [store.entries]);
 
   const timePills = [
     { key: 'all', label: 'Tümü' },
@@ -1626,7 +1629,7 @@ function GecmisScreen({ onEdit }) {
 
       {stationStats.length >= 2 && (
         <>
-          <div className="section-title"><h3>İstasyon Karşılaştırması</h3></div>
+          <div className="section-title"><h3>İstasyon Karşılaştırması</h3><span className="meta">Son 3 ay</span></div>
           <div style={{ padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
             {stationStats.map((s, i) => (
               <div key={s.name} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
