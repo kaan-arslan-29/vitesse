@@ -553,6 +553,41 @@ body {
 }
 .entry-right .icons { display: flex; gap: 2px; opacity: 0.7; }
 
+/* ── Filter pills ───────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 18px;
+}
+.filter-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-pill {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.filter-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 600;
+}
+
 /* ── Buttons ────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
@@ -1526,14 +1561,40 @@ function OzetScreen() {
 function GecmisScreen({ onEdit }) {
   const store = useStore();
   const [vehicleFilter, setVehicleFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('all');
+
   const filtered = useMemo(() => {
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const thisYear = `${now.getFullYear()}`;
+    const d3m = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()).toISOString().slice(0, 10);
     let xs = [...store.entries];
     if (vehicleFilter !== 'all') xs = xs.filter((e) => e.vehicleId === vehicleFilter);
+    if (timeFilter === 'month') xs = xs.filter((e) => e.dateISO.startsWith(thisMonth));
+    else if (timeFilter === '3month') xs = xs.filter((e) => e.dateISO >= d3m);
+    else if (timeFilter === 'year') xs = xs.filter((e) => e.dateISO.startsWith(thisYear));
     return xs.sort((a, b) => b.dateISO.localeCompare(a.dateISO));
-  }, [store.entries, vehicleFilter]);
+  }, [store.entries, vehicleFilter, timeFilter]);
 
   const priceVehicleId = vehicleFilter === 'all' ? store.activeVehicleId : vehicleFilter;
-  const priceHist = store.entries.filter((e) => e.vehicleId === priceVehicleId).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  const priceHist = useMemo(() => {
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const thisYear = `${now.getFullYear()}`;
+    const d3m = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()).toISOString().slice(0, 10);
+    let xs = store.entries.filter((e) => e.vehicleId === priceVehicleId);
+    if (timeFilter === 'month') xs = xs.filter((e) => e.dateISO.startsWith(thisMonth));
+    else if (timeFilter === '3month') xs = xs.filter((e) => e.dateISO >= d3m);
+    else if (timeFilter === 'year') xs = xs.filter((e) => e.dateISO.startsWith(thisYear));
+    return xs.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  }, [store.entries, priceVehicleId, timeFilter]);
+
+  const timePills = [
+    { key: 'all', label: 'Tümü' },
+    { key: 'month', label: 'Bu ay' },
+    { key: '3month', label: 'Son 3 ay' },
+    { key: 'year', label: 'Bu yıl' },
+  ];
 
   return (
     <div>
@@ -1548,11 +1609,20 @@ function GecmisScreen({ onEdit }) {
         </div>
       </div>
 
-      <div style={{ padding: '0 22px' }}>
-        <select className="select" value={vehicleFilter} onChange={(e) => setVehicleFilter(e.target.value)}>
-          <option value="all">Tüm araçlar</option>
-          {store.vehicles.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-        </select>
+      <div className="filter-bar">
+        <div className="filter-row">
+          {timePills.map((p) => (
+            <button key={p.key} className={`filter-pill${timeFilter === p.key ? ' active' : ''}`} onClick={() => setTimeFilter(p.key)}>{p.label}</button>
+          ))}
+        </div>
+        {store.vehicles.length > 1 && (
+          <div className="filter-row">
+            <button className={`filter-pill${vehicleFilter === 'all' ? ' active' : ''}`} onClick={() => setVehicleFilter('all')}>Tüm araçlar</button>
+            {store.vehicles.map((v) => (
+              <button key={v.id} className={`filter-pill${vehicleFilter === v.id ? ' active' : ''}`} onClick={() => setVehicleFilter(v.id)}>{v.name}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       {priceHist.length >= 2 &&
