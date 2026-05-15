@@ -1269,7 +1269,7 @@ function AreaChart({ data, labels, unit = '', decimals = 2 }) {
               return (
                 <g>
                   <rect x={tx} y={ty} width={tooltipW} height={tooltipH} rx="8" fill="var(--surface-2)" stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.4" />
-                  <text x={tx + tooltipW / 2} y={ty + 13} fontSize="11" fontWeight="500" textAnchor="middle" fill="var(--text)" fontFamily="Geist, sans-serif">{dateStr}</text>
+                  <text x={tx + tooltipW / 2} y={ty + 13} fontSize="11" fontWeight="500" textAnchor="middle" fill="var(--text-2)" fontFamily="Geist, sans-serif">{dateStr}</text>
                   <text x={tx + tooltipW / 2} y={ty + 28} fontSize="12" fontWeight="600" textAnchor="middle" fill="var(--accent)" fontFamily="Geist Mono, monospace">{fmt(data[i], decimals)} {unit}</text>
                 </g>
               );
