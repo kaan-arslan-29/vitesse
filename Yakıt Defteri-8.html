@@ -1245,14 +1245,14 @@ function AreaChart({ data, labels, unit = '', decimals = 2, showAvg = true }) {
   const dataMax = Math.max(...data);
   const spread = dataMax - dataMin || 1;
 
-  // Nice round grid values targeting ~4 intervals regardless of spread
-  const mag = Math.pow(10, Math.floor(Math.log10(spread / 4)));
-  const step = [1, 2, 5, 10].map((f) => f * mag).find((s) => spread / s <= 4) ?? mag * 10;
+  // Exactly 5 y-axis labels (4 equal intervals)
+  const rawStep = spread / 4;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const step = [1, 2, 5, 10].map((f) => f * mag).find((s) => s >= rawStep) ?? mag * 10;
   const labelDec = step < 1 ? 1 : 0;
   const gridMin = Math.floor(dataMin / step) * step;
-  const gridMax = Math.ceil(dataMax / step) * step;
-  const gridVals = [];
-  for (let v = gridMin; v <= gridMax + 0.001; v += step) gridVals.push(parseFloat(v.toFixed(labelDec)));
+  const gridVals = Array.from({ length: 5 }, (_, i) => parseFloat((gridMin + i * step).toFixed(labelDec)));
+  const gridMax = gridVals[4];
 
   const yMin = gridMin - step * 0.3;
   const yMax = gridMax + step * 0.3;
