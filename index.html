@@ -1571,6 +1571,20 @@ function GecmisScreen({ onEdit }) {
     return map;
   }, [store.entries]);
 
+  const stationStats = useMemo(() => {
+    const map = {};
+    filtered.forEach((e) => {
+      if (!e.station) return;
+      if (!map[e.station]) map[e.station] = { total: 0, liters: 0, count: 0 };
+      map[e.station].total += e.liters * e.pricePerL;
+      map[e.station].liters += e.liters;
+      map[e.station].count += 1;
+    });
+    return Object.entries(map)
+      .map(([name, s]) => ({ name, avg: s.liters > 0 ? s.total / s.liters : 0, count: s.count }))
+      .sort((a, b) => a.avg - b.avg);
+  }, [filtered]);
+
   const timePills = [
     { key: 'all', label: 'Tümü' },
     { key: 'month', label: 'Bu ay' },
@@ -1609,6 +1623,24 @@ function GecmisScreen({ onEdit }) {
           </div>
         </>
       }
+
+      {stationStats.length >= 2 && (
+        <>
+          <div className="section-title"><h3>İstasyon Karşılaştırması</h3></div>
+          <div style={{ padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+            {stationStats.map((s, i) => (
+              <div key={s.name} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {i === 0 && <span style={{ fontSize: 10, background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 6, padding: '2px 6px', fontWeight: 600 }}>EN UCUZ</span>}
+                  <span style={{ fontSize: 14, fontWeight: 500 }}>{s.name}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{s.count} dolum</span>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600 }}>{fmt(s.avg, 2)} ₺/L</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="section-title">
         <h3>{{ all: 'Tüm Dolumlar', month: 'Bu Ayki Dolumlar', '3month': 'Son 3 Aylık Dolumlar', year: 'Bu Yılki Dolumlar' }[timeFilter]}</h3>
@@ -1781,7 +1813,18 @@ function AyarlarScreen({ theme, setTheme }) {
         </div>
       </div>
 
-      <div style={{ padding: '22px' }}>
+      <div style={{ padding: '0 22px 22px' }}>
+        <button className="btn-ghost" style={{ width: '100%', padding: 12, justifyContent: 'center', color: 'var(--text-2)', marginBottom: 10 }}
+        onClick={() => {
+          const blob = new Blob([JSON.stringify({ entries: store.entries, events: store.events || [] }, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `yakit-defteri-${todayISO()}.json`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        }}>
+          <Icon.Sparkle /> Verileri dışa aktar
+        </button>
         <button className="btn-ghost" style={{ width: '100%', padding: 12, justifyContent: 'center', color: 'var(--text-2)' }}
         onClick={() => confirm('Tüm veriler silinecek ve örnek verilerle sıfırlanacak.', () => store.resetToSeed())}>
           <Icon.Trash /> Verileri sıfırla
@@ -1795,6 +1838,10 @@ function AyarlarScreen({ theme, setTheme }) {
 function EntrySheet({ open, onClose, editing }) {
   const store = useStore();
   const isEdit = !!editing;
+  const lastKm = useMemo(() => {
+    if (store.entries.length === 0) return null;
+    return Math.max(...store.entries.map((e) => e.km));
+  }, [store.entries]);
   const [dateISO, setDateISO] = useState(todayISO());
   const [liters, setLiters] = useState('');
   const [pricePerL, setPricePerL] = useState('');
@@ -1845,6 +1892,7 @@ function EntrySheet({ open, onClose, editing }) {
 
         <div className="label" style={{ marginTop: 14 }}>Kilometre</div>
         <input className="input mono" inputMode="numeric" placeholder="örn. 146200" value={km} onChange={(e) => setKm(e.target.value.replace(/[^0-9]/g, ''))} />
+        {!isEdit && lastKm !== null && <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 4, paddingLeft: 2 }}>Son kayıt: {fmtInt(lastKm)} km</div>}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
           <div>
