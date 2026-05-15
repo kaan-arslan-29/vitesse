@@ -797,6 +797,30 @@ body {
 
 const { useState, useEffect, useMemo, useContext, createContext, useRef } = React;
 
+/* ── Count-up animasyonu ────────────────────────────────── */
+function useCountUp(target, duration = 600) {
+  const [value, setValue] = useState(0);
+  const prev = useRef(0);
+  useEffect(() => {
+    if (target === null || isNaN(target)) { setValue(target); return; }
+    const from = prev.current;
+    prev.current = target;
+    if (from === target) return;
+    const start = performance.now();
+    let raf;
+    const tick = (now) => {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      setValue(from + (target - from) * ease);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else setValue(target);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  return value;
+}
+
 /* ── Icons ─────────────────────────────────────────────── */
 const Icon = {
   Fuel: ({ s = 22 }) =>
@@ -1217,6 +1241,11 @@ function OzetScreen() {
   filter((e) => e.days >= 0 && e.days <= 30).
   sort((a, b) => a.days - b.days);
 
+  const animAvgCons = useCountUp(avgCons ?? 0);
+  const animMonthSpend = useCountUp(thisMonthSpend);
+  const animTlPerKm = useCountUp(tlPerKm ?? 0);
+  const animLastSpend = useCountUp(last ? last.liters * last.pricePerL : 0);
+
   if (!vehicle) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-2)' }}>Önce araç ekleyin</div>;
 
   return (
@@ -1248,7 +1277,7 @@ function OzetScreen() {
           }
         </div>
         <div className="hero-big-row">
-          <span className="hero-big">{avgCons !== null ? fmt(avgCons, 2) : '—'}</span>
+          <span className="hero-big">{avgCons !== null ? fmt(animAvgCons, 2) : '—'}</span>
           <span className="hero-unit">L/100km</span>
         </div>
         <div className="hero-sub">{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
@@ -1269,7 +1298,7 @@ function OzetScreen() {
             <span className="label">Bu ay harcama</span>
             <span className="icon"><Icon.Coin /></span>
           </div>
-          <div className="value">{fmt(thisMonthSpend, 2)}<span className="u">₺</span></div>
+          <div className="value">{fmt(animMonthSpend, 2)}<span className="u">₺</span></div>
           <div className="sub">{thisMonth.length} dolum</div>
         </div>
         <div className="stat-card">
@@ -1277,7 +1306,7 @@ function OzetScreen() {
             <span className="label">km başına</span>
             <span className="icon"><Icon.Gauge /></span>
           </div>
-          <div className="value">{tlPerKm !== null ? fmt(tlPerKm, 2) : '—'}<span className="u">₺/km</span></div>
+          <div className="value">{tlPerKm !== null ? fmt(animTlPerKm, 2) : '—'}<span className="u">₺/km</span></div>
           <div className="sub">son 30 gün</div>
         </div>
         <div className="stat-card">
@@ -1285,7 +1314,7 @@ function OzetScreen() {
             <span className="label">Son dolum</span>
             <span className="icon"><Icon.Receipt /></span>
           </div>
-          <div className="value">{last ? fmt(last.liters * last.pricePerL, 2) : '—'}<span className="u">₺</span></div>
+          <div className="value">{last ? fmt(animLastSpend, 2) : '—'}<span className="u">₺</span></div>
           <div className="sub">{last ? `${fmtDate(last.dateISO)} · ${fmt(last.liters, 0)} L` : '—'}</div>
         </div>
         <div className="stat-card">
