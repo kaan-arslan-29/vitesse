@@ -1427,7 +1427,6 @@ function OzetScreen() {
             {infoOpen && <div onClick={() => setInfoOpen(false)} style={{ position: 'absolute', left: 0, top: 22, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap', zIndex: 10 }}>{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>}
           </div>
         </div>
-        {consMonthPct !== null && <div style={{ fontSize: 12, marginTop: 12, color: consMonthPct > 0 ? '#c45f5f' : '#5dba7d', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>{consMonthPct > 0 ? <Icon.TrendUp s={13} /> : <Icon.TrendDown s={13} />} Önceki doluma göre %{Math.abs(consMonthPct).toFixed(1)} {consMonthPct > 0 ? 'daha fazla' : 'daha az'}</div>}
 
         <div className="tank-row">
           <span className="label">Son dolumda ödenen</span>
