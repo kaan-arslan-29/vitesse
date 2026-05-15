@@ -1262,7 +1262,8 @@ function AreaChart({ data, labels, unit = '' }) {
             {isActive && labels && (() => {
               const tooltipW = 90, tooltipH = 38;
               const tx = Math.min(Math.max(x - tooltipW / 2, pad.l), W - pad.r - tooltipW);
-              const ty = ys[i] - tooltipH - 10;
+              const tyAbove = ys[i] - tooltipH - 10;
+              const ty = tyAbove < pad.t ? ys[i] + 10 : tyAbove;
               const d = parseISO(labels[i]);
               const dateStr = d ? `${d.getDate()} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][d.getMonth()]}` : labels[i];
               return (
