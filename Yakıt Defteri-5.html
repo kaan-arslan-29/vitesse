@@ -1136,7 +1136,8 @@ function averageConsumption(pts) {
 }
 
 /* ── Area Chart ────────────────────────────────────────── */
-function AreaChart({ data }) {
+function AreaChart({ data, labels, unit = '' }) {
+  const [active, setActive] = useState(null);
   if (!data || data.length < 2) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-2)', fontSize: 13 }}>Yetersiz veri</div>;
   const W = 320, H = 160;
   const pad = { t: 12, r: 14, b: 8, l: 38 };
@@ -1160,11 +1161,31 @@ function AreaChart({ data }) {
 
   const xs = data.map((_, i) => pad.l + (i / (data.length - 1)) * cW);
   const ys = data.map((v) => pad.t + ((yMax - v) / range) * cH);
-  const linePath = `M ${xs.map((x, i) => `${x},${ys[i]}`).join(' L ')}`;
+
+  // Cubic Bezier smooth path (Catmull-Rom → Bezier)
+  const smooth = (pts) => {
+    if (pts.length < 2) return '';
+    let d = `M ${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] || p2;
+      const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+      const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+      const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0]},${p2[1]}`;
+    }
+    return d;
+  };
+
+  const pts = xs.map((x, i) => [x, ys[i]]);
+  const linePath = smooth(pts);
   const areaPath = `${linePath} L ${xs[xs.length - 1]},${pad.t + cH} L ${xs[0]},${pad.t + cH} Z`;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', display: 'block' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', display: 'block' }} onClick={() => setActive(null)}>
       <defs>
         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
@@ -1184,10 +1205,29 @@ function AreaChart({ data }) {
         );
       })}
       <path d={areaPath} fill="url(#areaGrad)" />
-      <polyline points={xs.map((x, i) => `${x},${ys[i]}`).join(' ')} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-      {xs.map((x, i) =>
-        <circle key={i} cx={x} cy={ys[i]} r="3.5" fill="var(--bg)" stroke="var(--accent)" strokeWidth="2" />
-      )}
+      <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      {xs.map((x, i) => {
+        const isActive = active === i;
+        return (
+          <g key={i} style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setActive(active === i ? null : i); }}>
+            <circle cx={x} cy={ys[i]} r={isActive ? 6 : 3.5} fill={isActive ? 'var(--accent)' : 'var(--bg)'} stroke="var(--accent)" strokeWidth="2" style={{ transition: 'r 0.15s' }} />
+            {isActive && labels && (() => {
+              const tooltipW = 90, tooltipH = 38;
+              const tx = Math.min(Math.max(x - tooltipW / 2, pad.l), W - pad.r - tooltipW);
+              const ty = ys[i] - tooltipH - 10;
+              const d = parseISO(labels[i]);
+              const dateStr = d ? `${d.getDate()} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][d.getMonth()]}` : labels[i];
+              return (
+                <g>
+                  <rect x={tx} y={ty} width={tooltipW} height={tooltipH} rx="8" fill="var(--surface-2)" stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.4" />
+                  <text x={tx + tooltipW / 2} y={ty + 13} fontSize="9" textAnchor="middle" fill="var(--text-2)" fontFamily="Geist, sans-serif">{dateStr}</text>
+                  <text x={tx + tooltipW / 2} y={ty + 28} fontSize="12" fontWeight="600" textAnchor="middle" fill="var(--accent)" fontFamily="Geist Mono, monospace">{fmt(data[i], 2)} {unit}</text>
+                </g>
+              );
+            })()}
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -1395,7 +1435,7 @@ function OzetScreen() {
             <span className="meta">Son {consPts.length} dolum · L/100km</span>
           </div>
           <div className="chart-card">
-            <AreaChart data={consPts.map((p) => p.consumption)} />
+            <AreaChart data={consPts.map((p) => p.consumption)} labels={consPts.map((p) => p.dateISO)} unit="L/100km" />
           </div>
         </>
       }
@@ -1471,7 +1511,7 @@ function GecmisScreen({ onEdit }) {
             <h3>Fiyat Geçmişi · ₺/Litre</h3>
           </div>
           <div className="chart-card">
-            <AreaChart data={priceHist.map((p) => p.pricePerL)} />
+            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit="₺/L" />
           </div>
         </>
       }
