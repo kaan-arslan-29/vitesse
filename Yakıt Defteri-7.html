@@ -418,10 +418,34 @@ body {
 /* ── Entry list (Geçmiş) ────────────────────────────────── */
 .entry-list {
   margin: 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.entry-group {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
+}
+.entry-group-header {
+  padding: 8px 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.entry-group-header .month {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+  font-family: var(--font-sans);
+}
+.entry-group-header .count {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: 400;
 }
 .entry {
   display: grid;
@@ -1102,7 +1126,9 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const parseISO = (s) => {if (!s) return null;const [y, m, d] = s.split('-').map(Number);return new Date(y, m - 1, d);};
 const fmtDate = (s) => {const d = parseISO(s);if (!d) return '';return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;};
 const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const TR_MONTHS_FULL = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 const dayMon = (s) => {const d = parseISO(s);if (!d) return { d: '--', m: '---' };return { d: String(d.getDate()).padStart(2, '0'), m: TR_MONTHS[d.getMonth()] };};
+const monthLabel = (yyyyMM) => { const [y, m] = yyyyMM.split('-'); return `${TR_MONTHS_FULL[parseInt(m, 10) - 1]} ${y}`; };
 const todayISO = () => {const d = new Date();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;};
 const daysUntil = (iso) => {const b = parseISO(iso);if (!b) return 0;return Math.round((b - new Date()) / 86400000);};
 const parseNum = (s) => {
@@ -1554,36 +1580,51 @@ function GecmisScreen({ onEdit }) {
         />
       ) : (
       <div className="entry-list">
-        {filtered.map((e) => {
-          const dm = dayMon(e.dateISO);
-          return (
-            <div className="entry" key={e.id}>
-              <div className="entry-date">
-                <div className="day">{dm.d}</div>
-                <div className="mon">{dm.m}</div>
-              </div>
-              <div className="entry-mid">
-                <div className="entry-top">
-                  <span className="liters">{fmt(e.liters, 2)} L</span>
-                  <span className={`entry-chip ${e.full ? 'full' : 'partial'}`}>{e.full ? 'Tam' : 'Yarım'}</span>
+        {Object.entries(
+          filtered.reduce((acc, e) => {
+            const key = e.dateISO.slice(0, 7);
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(e);
+            return acc;
+          }, {})
+        ).sort((a, b) => b[0].localeCompare(a[0])).map(([key, entries]) => (
+          <div className="entry-group" key={key}>
+            <div className="entry-group-header">
+              <span className="month">{monthLabel(key)}</span>
+              <span className="count">{entries.length} dolum</span>
+            </div>
+            {entries.map((e) => {
+              const dm = dayMon(e.dateISO);
+              return (
+                <div className="entry" key={e.id}>
+                  <div className="entry-date">
+                    <div className="day">{dm.d}</div>
+                    <div className="mon">{dm.m}</div>
+                  </div>
+                  <div className="entry-mid">
+                    <div className="entry-top">
+                      <span className="liters">{fmt(e.liters, 2)} L</span>
+                      <span className={`entry-chip ${e.full ? 'full' : 'partial'}`}>{e.full ? 'Tam' : 'Yarım'}</span>
+                    </div>
+                    <div className="entry-bot">
+                      <span className="price">{fmt(e.pricePerL, 2)} ₺/L</span>
+                      <span className="sep">·</span>
+                      <span>{fmtInt(e.km)} km</span>
+                      {e.station && <><span className="sep">·</span><span>{e.station}</span></>}
+                    </div>
+                  </div>
+                  <div className="entry-right">
+                    <div className="total">{fmt(e.liters * e.pricePerL, 2)}<span className="u">₺</span></div>
+                    <div className="icons">
+                      <button className="btn-icon" onClick={() => onEdit(e)}><Icon.Pencil /></button>
+                      <button className="btn-icon" onClick={() => { if (confirm('Silinsin mi?')) store.deleteEntry(e.id); }}><Icon.Trash /></button>
+                    </div>
+                  </div>
                 </div>
-                <div className="entry-bot">
-                  <span className="price">{fmt(e.pricePerL, 2)} ₺/L</span>
-                  <span className="sep">·</span>
-                  <span>{fmtInt(e.km)} km</span>
-                  {e.station && <><span className="sep">·</span><span>{e.station}</span></>}
-                </div>
-              </div>
-              <div className="entry-right">
-                <div className="total">{fmt(e.liters * e.pricePerL, 2)}<span className="u">₺</span></div>
-                <div className="icons">
-                  <button className="btn-icon" onClick={() => onEdit(e)}><Icon.Pencil /></button>
-                  <button className="btn-icon" onClick={() => {if (confirm('Silinsin mi?')) store.deleteEntry(e.id);}}><Icon.Trash /></button>
-                </div>
-              </div>
-            </div>);
-
-        })}
+              );
+            })}
+          </div>
+        ))}
       </div>
       )}
     </div>);
