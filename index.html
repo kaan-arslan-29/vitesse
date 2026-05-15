@@ -1413,15 +1413,6 @@ function OzetScreen() {
       <div className="hero">
         <div className="hero-top">
           <span className="eyebrow">Ortalama Tüketim</span>
-          {consDelta !== null &&
-          <span className={`trend-pill ${consDelta <= 0 ? 'down' : 'up'}`}>
-              <span className="delta">
-                {consDelta <= 0 ? <Icon.TrendDown /> : <Icon.TrendUp />}
-                {consDelta > 0 ? '+' : ''}{fmt(consDelta, 1)}
-              </span>
-              son aya göre
-            </span>
-          }
         </div>
         <div className="hero-big-row">
           <span className="hero-big">{avgCons !== null ? fmt(animAvgCons, 1) : '—'}</span>
