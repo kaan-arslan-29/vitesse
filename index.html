@@ -31,6 +31,9 @@
   --text-dim: #56566a;
   --text-faint: #2d2d3a;
   --text-subtle: rgba(255,255,255,0.75);
+  --color-good: #5dba7d;
+  --color-bad: #c45f5f;
+  --color-chart-axis: #6e6e82;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
@@ -1242,7 +1245,7 @@ function AreaChart({ data, labels, unit = '', decimals = 2 }) {
         return (
           <g key={i}>
             <line x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray="3 5" strokeOpacity="0.7" />
-            <text x={pad.l - 24} y={y + 3.5} fontSize="10" textAnchor="end" fill="#6e6e82" fontFamily="Geist Mono, monospace">
+            <text x={pad.l - 24} y={y + 3.5} fontSize="10" textAnchor="end" fill="var(--color-chart-axis)" fontFamily="Geist Mono, monospace">
               {val.toFixed(1)}
             </text>
           </g>
@@ -1258,8 +1261,8 @@ function AreaChart({ data, labels, unit = '', decimals = 2 }) {
         const isActive = active === i;
         const isMin = i === minIdx;
         const isMax = i === maxIdx;
-        const dotColor = isMin ? '#5dba7d' : isMax ? '#c45f5f' : isActive ? 'var(--accent)' : 'var(--bg)';
-        const strokeColor = isMin ? '#5dba7d' : isMax ? '#c45f5f' : 'var(--accent)';
+        const dotColor = isMin ? 'var(--color-good)' : isMax ? 'var(--color-bad)' : isActive ? 'var(--accent)' : 'var(--bg)';
+        const strokeColor = isMin ? 'var(--color-good)' : isMax ? 'var(--color-bad)' : 'var(--accent)';
         return (
           <g key={i} style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setActive(active === i ? null : i); }}>
             <circle cx={x} cy={ys[i]} r={isActive || isMin || isMax ? 5 : 3.5} fill={dotColor} stroke={strokeColor} strokeWidth="2" className="chart-dot" style={{ transition: 'r 0.15s', animationDelay: `${0.2 + i * 0.03}s` }} />
