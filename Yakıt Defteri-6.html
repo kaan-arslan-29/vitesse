@@ -1439,7 +1439,6 @@ function OzetScreen() {
           <span className="label">Son dolumda ödenen · ₺/L</span>
           <span className="value">
             {lastPrice ? <><span className="num">{fmt(lastPrice, 2)}</span><span className="u">₺/L</span></> : <span className="num">—</span>}
-            {priceDiff !== null && <span style={{ fontSize: 11, marginLeft: 6, color: priceDiff > 0.01 ? '#c45f5f' : priceDiff < -0.01 ? '#5dba7d' : 'var(--text-2)' }}>{priceDiff > 0.01 ? '▲' : priceDiff < -0.01 ? '▼' : '='} {Math.abs(priceDiff).toFixed(2)}</span>}
           </span>
         </div>
       </div>
