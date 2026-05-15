@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -Command \"$src = 'C:\\Users\\arsla\\Desktop\\yazılım projelerim\\yakit defteri\\Yakıt Defteri-6.html'; $dst = 'C:\\Users\\arsla\\Desktop\\yazılım projelerim\\yakit defteri\\index.html'; if ((Get-Item $src).LastWriteTime -gt (Get-Item $dst).LastWriteTime) { Copy-Item $src $dst }\"",
+            "command": "powershell -Command \"$src = 'C:\\Users\\arsla\\Desktop\\yazılım projelerim\\yakit defteri\\Yakıt Defteri-7.html'; $dst = 'C:\\Users\\arsla\\Desktop\\yazılım projelerim\\yakit defteri\\index.html'; if ((Get-Item $src).LastWriteTime -gt (Get-Item $dst).LastWriteTime) { Copy-Item $src $dst }\"",
             "shell": "powershell",
             "timeout": 15,
             "statusMessage": "index.html güncelleniyor..."
