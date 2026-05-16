@@ -29,8 +29,6 @@
   --text: #f5f5f7;
   --text-2: #8e8e9d;
   --text-dim: #56566a;
-  --text-faint: #2d2d3a;
-  --text-subtle: rgba(255,255,255,0.75);
   --color-good: #5dba7d;
   --color-bad: #c45f5f;
   --color-chart-axis: #6e6e82;
@@ -1183,7 +1181,9 @@ const SEED = {
 
   events: [
   { id: 'ev1', type: 'Kasko', startISO: '2026-05-15', endISO: '2026-06-03', notifyDays: 15 },
-  { id: 'ev2', type: 'Muayene', startISO: '2026-04-20', endISO: '2026-05-28', notifyDays: 30 }]
+  { id: 'ev2', type: 'Muayene', startISO: '2026-04-20', endISO: '2026-05-28', notifyDays: 30 }],
+
+  prefs: { showMinMax: false }
 };
 
 function loadStore() {
@@ -1203,6 +1203,7 @@ function StoreProvider({ children }) {
     addEvent: (e) => setData((d) => ({ ...d, events: [...d.events, { ...e, id: uid() }] })),
     updateEvent: (id, p) => setData((d) => ({ ...d, events: d.events.map((e) => e.id === id ? { ...e, ...p } : e) })),
     deleteEvent: (id) => setData((d) => ({ ...d, events: d.events.filter((e) => e.id !== id) })),
+    setPref: (key, val) => setData((d) => ({ ...d, prefs: { ...(d.prefs || {}), [key]: val } })),
     resetToSeed: () => setData(SEED),
     loadData: (d) => setData(d),
   }), []);
@@ -1262,7 +1263,7 @@ function averageConsumption(pts) {
 }
 
 /* ── Area Chart ────────────────────────────────────────── */
-function AreaChart({ data, labels, unit = '', decimals = 2 }) {
+function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false }) {
   const [active, setActive] = useState(null);
   if (!data || data.length < 2) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-2)', fontSize: 14 }}>Yetersiz veri</div>;
   const W = 320, H = 160;
@@ -1340,8 +1341,8 @@ function AreaChart({ data, labels, unit = '', decimals = 2 }) {
       <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" className="chart-line" />
       {xs.map((x, i) => {
         const isActive = active === i;
-        const isMin = i === minIdx;
-        const isMax = i === maxIdx;
+        const isMin = showMinMax && i === minIdx;
+        const isMax = showMinMax && i === maxIdx;
         const dotColor = isMin ? 'var(--color-good)' : isMax ? 'var(--color-bad)' : isActive ? 'var(--accent)' : 'var(--bg)';
         const strokeColor = isMin ? 'var(--color-good)' : isMax ? 'var(--color-bad)' : 'var(--accent)';
         return (
@@ -1482,7 +1483,7 @@ function OzetScreen() {
             </button>
             {infoOpen && <>
               <div onClick={() => setInfoOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9 }} />
-              <div style={{ position: 'absolute', left: 0, top: 22, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-subtle)', whiteSpace: 'nowrap', zIndex: 10, transform: 'translateX(-30%)' }}>{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
+              <div style={{ position: 'absolute', left: 0, top: 22, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10, transform: 'translateX(-30%)' }}>{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
             </>}
           </div>
         </div>
@@ -1523,7 +1524,7 @@ function OzetScreen() {
             <span className="icon"><Icon.Receipt /></span>
           </div>
           <div className="value">{last ? fmt(animLastSpend, 2) : '—'}<span className="u">₺</span></div>
-          <div className="sub">{last ? `${fmtDate(last.dateISO)} · ${fmt(last.liters, 1)} L${last.station ? ` · ${last.station}` : ''}` : '—'}</div>
+          <div className="sub">{last ? ((() => { const d = Math.round((new Date() - parseISO(last.dateISO)) / 86400000); const lbl = d === 0 ? 'Bugün' : d === 1 ? 'Dün' : d + ' gün önce'; return lbl + ' · ' + fmt(last.liters, 1) + ' L' + (last.station ? ' · ' + last.station : ''); })()) : '—'}</div>
         </div>
         <div className="stat-card">
           <div className="top">
@@ -1546,7 +1547,7 @@ function OzetScreen() {
             </div>
           </div>
           {visibleConsPts.length >= 2
-            ? <div className="chart-card"><AreaChart data={visibleConsPts.map((p) => p.consumption)} labels={visibleConsPts.map((p) => p.dateISO)} unit="L/100km" decimals={1} /></div>
+            ? <div className="chart-card"><AreaChart data={visibleConsPts.map((p) => p.consumption)} labels={visibleConsPts.map((p) => p.dateISO)} unit="L/100km" decimals={1} showMinMax={!!(store.prefs && store.prefs.showMinMax)} /></div>
             : <div style={{ margin: '0 18px', padding: '16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, textAlign: 'center', fontSize: 13, color: 'var(--text-2)' }}>Bu dönemde yeterli veri yok</div>
           }
         </>
@@ -1663,6 +1664,7 @@ function GecmisScreen({ onEdit }) {
 
   const timePills = [
     { key: 'all', label: 'Tümü' },
+    { key: 'month', label: 'Bu ay' },
     { key: '3month', label: 'Son 3 ay' },
     { key: 'year', label: 'Bu yıl' },
   ];
@@ -1699,7 +1701,7 @@ function GecmisScreen({ onEdit }) {
             <span className="meta">{timeFilter === 'all' && priceHist.length >= 2 ? `${fmtDate(priceHist[0].dateISO)} – ${fmtDate(priceHist[priceHist.length - 1].dateISO)}` : { '3month': 'Son 3 ay', year: 'Bu yıl' }[timeFilter]}</span>
           </div>
           <div className="chart-card">
-            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit="₺/L" />
+            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit="₺/L" showMinMax={!!(store.prefs && store.prefs.showMinMax)} />
           </div>
         </>
       }
@@ -1716,20 +1718,20 @@ function GecmisScreen({ onEdit }) {
                 </button>
                 {stationInfoOpen && <>
                   <div onClick={() => setStationInfoOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9 }} />
-                  <div style={{ position: 'absolute', right: 0, top: 20, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-subtle)', whiteSpace: 'nowrap', zIndex: 10 }}>Enflasyon etkisini azaltmak için hep son 3 aya bakılır</div>
+                  <div style={{ position: 'absolute', right: 0, top: 20, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10 }}>Enflasyon etkisini azaltmak için hep son 3 aya bakılır</div>
                 </>}
               </div>
             </div>
           </div>
-          <div style={{ padding: '0 18px', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+          <div style={{ margin: '0 18px 8px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
             {stationStats.map((s, i) => (
-              <div key={s.name} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {i === 0 && <span style={{ fontSize: 10, background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 6, padding: '2px 6px', fontWeight: 600 }}>EN UCUZ</span>}
-                  <span style={{ fontSize: 14, fontWeight: 500 }}>{s.name}</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{s.count} dolum</span>
+              <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  {i === 0 && <span style={{ fontSize: 10, background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 5, padding: '1px 5px', fontWeight: 600, letterSpacing: '0.02em' }}>UCUZ</span>}
+                  <span style={{ fontSize: 13, fontWeight: 500 }}>{s.name}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-2)' }}>{s.count}×</span>
                 </div>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600 }}>{fmt(s.avg, 2)} ₺/L</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600 }}>{fmt(s.avg, 2)} ₺/L</span>
               </div>
             ))}
           </div>
@@ -1969,6 +1971,14 @@ function AyarlarScreen({ theme, setTheme }) {
           </div>
           <div className={`switch ${bildirim ? 'on' : ''}`} onClick={() => setBildirim((v) => !v)} />
         </div>
+        <div className="row">
+          <div className="icon"><Icon.Gauge s={16} /></div>
+          <div className="meta">
+            <h5>Min/Maks İşaretleri</h5>
+            <p>Grafiklerde en düşük ve yüksek noktalar</p>
+          </div>
+          <div className={`switch ${(store.prefs && store.prefs.showMinMax) ? 'on' : ''}`} onClick={() => store.setPref('showMinMax', !(store.prefs && store.prefs.showMinMax))} />
+        </div>
       </div>
 
       <div style={{ padding: '0 22px 22px' }}>
@@ -2022,6 +2032,7 @@ function EntrySheet({ open, onClose, editing }) {
   const [note, setNote] = useState('');
   const [full, setFull] = useState(true);
   const [errors, setErrors] = useState({});
+  const [discardOpen, setDiscardOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -2044,6 +2055,11 @@ function EntrySheet({ open, onClose, editing }) {
   if (!open) return null;
 
   const kmNum = parseInt(String(km).replace(/[^0-9]/g, ''), 10) || 0;
+  const isDirty = km.trim() || liters.trim() || pricePerL.trim();
+  const handleClose = () => {
+    if (!isEdit && isDirty) { setDiscardOpen(true); return; }
+    onClose();
+  };
 
   const submit = () => {
     const l = parseNum(liters), p = parseNum(pricePerL);
@@ -2060,12 +2076,13 @@ function EntrySheet({ open, onClose, editing }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-handle" />
         <div className="modal-head">
           <h2>{isEdit ? 'Dolumu düzenle' : 'Yeni Dolum'}</h2>
-          <button className="btn-icon" onClick={onClose}><Icon.X /></button>
+          <button className="btn-icon" onClick={handleClose}><Icon.X /></button>
         </div>
         {isEdit && <div className="modal-sub">Bu kaydı düzenle</div>}
 
@@ -2141,6 +2158,20 @@ function EntrySheet({ open, onClose, editing }) {
         <button className="btn btn-primary" style={{ width: '100%', marginTop: 10 }} onClick={submit}>{isEdit ? 'Güncelle' : 'Kaydet'}</button>
       </div>
     </div>
+    {discardOpen && (
+      <div className="modal-overlay" style={{ zIndex: 300 }} onClick={() => setDiscardOpen(false)}>
+        <div className="modal" onClick={(e) => e.stopPropagation()} style={{ paddingBottom: 28 }}>
+          <div className="modal-handle" />
+          <div className="modal-head"><h2>Vazgeç?</h2></div>
+          <div className="modal-sub">Girilen bilgiler kaydedilmeyecek.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setDiscardOpen(false); onClose(); }}>Çıkış</button>
+            <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setDiscardOpen(false)}>Düzenlemeye devam et</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
