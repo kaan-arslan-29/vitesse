@@ -622,7 +622,7 @@ body {
   font-weight: 500;
   margin-left: 2px;
 }
-.entry-right .icons { display: flex; gap: 2px; opacity: 0.7; }
+.entry-right .icons { display: flex; gap: 2px; }
 
 /* ── Filter pills ───────────────────────────────────────── */
 .filter-bar {
@@ -1252,7 +1252,7 @@ const fmtInt = (n) => {
   if (n === null || n === undefined || Number.isNaN(n)) return '—';
   return Number(n).toLocaleString('tr-TR');
 };
-const APP_VERSION = 'v14';
+const APP_VERSION = 'v15';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const parseISO = (s) => {if (!s) return null;const [y, m, d] = s.split('-').map(Number);return new Date(y, m - 1, d);};
 const fmtDate = (s) => {const d = parseISO(s);if (!d) return '';return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;};
