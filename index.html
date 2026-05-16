@@ -169,15 +169,15 @@ body {
 .hero {
   margin: 0 18px;
   background:
-    radial-gradient(90% 80% at 10% 0%, rgba(245, 179, 66, 0.22) 0%, transparent 60%),
-    radial-gradient(60% 50% at 90% 100%, rgba(245, 179, 66, 0.08) 0%, transparent 50%),
+    radial-gradient(130% 105% at 10% 0%, #2E2A1F 0%, rgba(46, 42, 31, 0) 60%),
+    radial-gradient(60% 50% at 90% 100%, rgba(46, 42, 31, 0.5) 0%, transparent 50%),
     var(--surface);
-  border: 1px solid rgba(245, 179, 66, 0.2);
+  border: 1px solid rgba(90, 78, 52, 0.35);
   border-radius: 16px;
   padding: 14px 16px;
   box-shadow:
-    0 0 0 1px rgba(245, 179, 66, 0.06),
-    0 8px 32px rgba(245, 179, 66, 0.08);
+    0 0 0 1px rgba(46, 42, 31, 0.3),
+    0 8px 32px rgba(46, 42, 31, 0.2);
 }
 .hero-top {
   display: flex;
@@ -414,6 +414,11 @@ body {
   background: rgba(248, 113, 113, 0.15);
   color: var(--negative);
 }
+.remaining.expired { background: rgba(248, 113, 113, 0.15); color: var(--negative); }
+.remaining.soon { background: var(--accent-soft); color: var(--accent); }
+.remaining.ok { background: rgba(74, 222, 128, 0.12); color: var(--positive); }
+.upcoming-row.expired .iconbox { background: rgba(248, 113, 113, 0.1); color: var(--negative); }
+.upcoming-row .iconbox.soon { background: var(--accent-soft); color: var(--accent); }
 
 /* ── Entry list (Geçmiş) ────────────────────────────────── */
 .entry-list {
@@ -600,6 +605,14 @@ body {
   font-size: 14px;
 }
 .btn-primary:active { transform: scale(0.98); }
+.btn-accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 7px 14px;
+  font-size: 13px;
+  border-radius: 20px;
+}
+.btn-accent:active { transform: scale(0.97); }
 .btn-ghost {
   background: var(--surface);
   color: var(--text);
@@ -617,7 +630,7 @@ body {
 }
 .btn-danger:active { transform: scale(0.98); }
 .btn-icon {
-  background: transparent;
+  background: #21212c;
   border: none;
   color: var(--text-2);
   width: 30px; height: 30px;
@@ -1096,6 +1109,19 @@ const Icon = {
   Moon: ({ s = 16 }) =>
   <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+    </svg>,
+
+  ClipboardCheck: ({ s = 18 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+      <rect x="9" y="3" width="6" height="4" rx="1" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>,
+
+  Tag: ({ s = 18 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+      <circle cx="7.5" cy="7.5" r="1" fill="currentColor" stroke="none" />
     </svg>
 
 };
@@ -1544,7 +1570,7 @@ function OzetScreen() {
             {upcoming.map((e) =>
             <div className="upcoming-row" key={e.id}>
               <div className="left">
-                <div className="iconbox">{e.type === 'Kasko' || e.type === 'Sigorta' ? <Icon.Shield /> : <Icon.Wrench />}</div>
+                <div className="iconbox">{e.type === 'Kasko' || e.type === 'Sigorta' ? <Icon.Shield /> : e.type === 'Muayene' ? <Icon.ClipboardCheck /> : e.type === 'Bakım' ? <Icon.Wrench /> : <Icon.Tag />}</div>
                 <div>
                   <div className="name">{e.type}</div>
                   <div className="date">{fmtDate(e.endISO)}</div>
@@ -1567,7 +1593,6 @@ function GecmisScreen({ onEdit }) {
   const [timeFilter, setTimeFilter] = useState('all');
   const [stationInfoOpen, setStationInfoOpen] = useState(false);
   const [stationFilter, setStationFilter] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const allStations = useMemo(() => {
     const seen = new Set();
@@ -1588,17 +1613,8 @@ function GecmisScreen({ onEdit }) {
     else if (timeFilter === '3month') xs = xs.filter((e) => e.dateISO >= d3m);
     else if (timeFilter === 'year') xs = xs.filter((e) => e.dateISO.startsWith(thisYear));
     if (stationFilter) xs = xs.filter((e) => e.station === stationFilter);
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      xs = xs.filter((e) =>
-        (e.station && e.station.toLowerCase().includes(q)) ||
-        (e.note && e.note.toLowerCase().includes(q)) ||
-        fmtDate(e.dateISO).includes(q) ||
-        String(e.km).includes(q)
-      );
-    }
     return xs.sort((a, b) => b.dateISO.localeCompare(a.dateISO));
-  }, [store.entries, timeFilter, stationFilter, searchQuery]);
+  }, [store.entries, timeFilter, stationFilter]);
 
   const priceHist = useMemo(() => {
     const now = new Date();
@@ -1662,8 +1678,7 @@ function GecmisScreen({ onEdit }) {
           <h1>Geçmiş</h1>
           <div className="sub">{filtered.length} dolum kaydı</div>
         </div>
-        <input className="input" placeholder="İstasyon, tarih, km ara…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ fontSize: 14 }} />
-        <div className="filter-row">
+<div className="filter-row">
           {timePills.map((p) => (
             <button key={p.key} className={`filter-pill${timeFilter === p.key ? ' active' : ''}`} onClick={() => setTimeFilter(p.key)}>{p.label}</button>
           ))}
@@ -1803,7 +1818,49 @@ function GecmisScreen({ onEdit }) {
 function TakvimScreen({ onAddEvent, onEditEvent }) {
   const store = useStore();
   const confirm = useConfirm();
-  const events = (store.events || []).map((e) => ({ ...e, days: daysUntil(e.endISO) })).sort((a, b) => a.days - b.days);
+  const allEvents = (store.events || []).map((e) => ({ ...e, days: daysUntil(e.endISO) }));
+  const upcoming = allEvents.filter((e) => e.days >= 0).sort((a, b) => a.days - b.days);
+  const expired = allEvents.filter((e) => e.days < 0).sort((a, b) => b.days - a.days);
+
+  const badge = (days) => {
+    if (days < 0) return { label: `${Math.abs(days)} gün önce`, cls: 'expired' };
+    if (days === 0) return { label: 'Bugün', cls: 'soon' };
+    if (days <= 30) return { label: `${days} gün`, cls: 'soon' };
+    return { label: `${days} gün`, cls: 'ok' };
+  };
+
+  const typeIcon = (type) => {
+    if (type === 'Kasko' || type === 'Sigorta') return <Icon.Shield />;
+    if (type === 'Muayene') return <Icon.ClipboardCheck />;
+    if (type === 'Bakım') return <Icon.Wrench />;
+    return <Icon.Tag />;
+  };
+
+  const renderCard = (e) => {
+    const b = badge(e.days);
+    const isSoon = e.days >= 0 && e.days <= 30;
+    return (
+      <div className={`upcoming-row${e.days < 0 ? ' expired' : ''}`} key={e.id}>
+        <div className="left">
+          <div className={`iconbox${e.days < 0 ? ' expired' : isSoon ? ' soon' : ''}`}>
+            {typeIcon(e.type)}
+          </div>
+          <div>
+            <div className="name">{e.type}</div>
+            <div className="date">
+              {e.startISO && <span style={{ opacity: 0.55 }}>{fmtDate(e.startISO)} → </span>}
+              <span style={{ color: 'var(--text)', fontWeight: 500 }}>{fmtDate(e.endISO)}</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className={`remaining ${b.cls}`}>{b.label}</span>
+          <button className="btn-icon" onClick={() => onEditEvent(e)}><Icon.Pencil /></button>
+          <button className="btn-icon" onClick={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}><Icon.Trash /></button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -1814,42 +1871,39 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
       <div className="title-row">
         <div className="title-block">
           <h1>Takvim</h1>
-          <div className="sub">{events.length} etkinlik takip ediliyor</div>
+          <div className="sub">{allEvents.length} etkinlik takip ediliyor</div>
         </div>
-        <button className="btn-ghost" onClick={onAddEvent}><Icon.Plus s={14} /> Ekle</button>
+        <button className="btn btn-accent" onClick={onAddEvent}><Icon.Plus s={14} /> Ekle</button>
       </div>
 
-      <div className="section-title"><h3>Takvim Etkinlikleri</h3></div>
-
-      <div className="upcoming-list">
-        {events.length === 0 ?
-        <EmptyState
-          icon={<Icon.Calendar s={28} />}
-          title="Henüz etkinlik yok"
-          sub="Muayene, sigorta, lastik gibi hatırlatmaları buradan takip edebilirsin."
-          action={<><Icon.Plus s={14} /> Etkinlik ekle</>}
-          onAction={onAddEvent}
-        /> :
-        events.map((e) => {
-          return (
-            <div className="upcoming-row" key={e.id}>
-              <div className="left">
-                <div className="iconbox">{e.type === 'Kasko' || e.type === 'Sigorta' ? <Icon.Shield /> : <Icon.Wrench />}</div>
-                <div>
-                  <div className="name">{e.type}</div>
-                  <div className="date">{e.startISO && `${fmtDate(e.startISO)} → `}{fmtDate(e.endISO)}</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button className="btn-icon" onClick={() => onEditEvent(e)}><Icon.Pencil /></button>
-                <button className="btn-icon" onClick={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}><Icon.Trash /></button>
-              </div>
-            </div>);
-
-        })}
-      </div>
-    </div>);
-
+      {allEvents.length === 0 ? (
+        <div className="upcoming-list">
+          <EmptyState
+            icon={<Icon.Calendar s={28} />}
+            title="Henüz etkinlik yok"
+            sub="Muayene, sigorta, lastik gibi hatırlatmaları buradan takip edebilirsin."
+            action={<><Icon.Plus s={14} /> Etkinlik ekle</>}
+            onAction={onAddEvent}
+          />
+        </div>
+      ) : (
+        <>
+          {upcoming.length > 0 && (
+            <>
+              <div className="section-title"><h3>Devam Eden</h3></div>
+              <div className="upcoming-list">{upcoming.map(renderCard)}</div>
+            </>
+          )}
+          {expired.length > 0 && (
+            <>
+              <div className="section-title" style={{ marginTop: upcoming.length > 0 ? 14 : 4 }}><h3>Süresi Dolmuş</h3></div>
+              <div className="upcoming-list">{expired.map(renderCard)}</div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
 }
 
 /* ── Ayarlar ───────────────────────────────────────────── */
@@ -2097,9 +2151,11 @@ function EventSheet({ open, onClose, editing }) {
   const [startISO, setStartISO] = useState(todayISO());
   const [endISO, setEndISO] = useState('');
   const [notifyDays, setNotifyDays] = useState(15);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (!open) return;
+    setErrors({});
     if (editing) {
       setType(editing.type || 'Kasko');
       setStartISO(editing.startISO || todayISO());
@@ -2116,10 +2172,12 @@ function EventSheet({ open, onClose, editing }) {
 
   if (!open) return null;
   const submit = () => {
-    if (!endISO) { alert('Bitiş tarihi gerekli.'); return; }
+    const errs = {};
+    if (!endISO) errs.endISO = 'Bitiş tarihi gerekli';
+    else if (startISO && endISO < startISO) errs.endISO = 'Bitiş tarihi başlangıçtan önce olamaz';
+    if (Object.keys(errs).length) { setErrors(errs); return; }
     const payload = { type, startISO, endISO, notifyDays };
-    if (isEdit) store.updateEvent(editing.id, payload); else
-    store.addEvent(payload);
+    if (isEdit) store.updateEvent(editing.id, payload); else store.addEvent(payload);
     onClose();
   };
 
@@ -2142,7 +2200,8 @@ function EventSheet({ open, onClose, editing }) {
           </div>
           <div>
             <div className="label">Bitiş</div>
-            <input className="input mono" type="date" value={endISO} onChange={(e) => setEndISO(e.target.value)} />
+            <input className={`input mono${errors.endISO ? ' error' : ''}`} type="date" value={endISO} onChange={(e) => { setEndISO(e.target.value); setErrors((p) => ({ ...p, endISO: undefined })); }} />
+            {errors.endISO && <div className="field-error">{errors.endISO}</div>}
           </div>
         </div>
         <div className="label" style={{ marginTop: 12 }}>Önceden bildir (gün)</div>
