@@ -1,0 +1,18 @@
+{
+  "name": "Yakıt Defteri",
+  "short_name": "Yakıt",
+  "description": "Kişisel yakıt ve araç bakım takip uygulaması",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#f5b342",
+  "background_color": "#0d0d10",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -4,6 +4,13 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Yakıt Defteri</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#f5b342"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Yakıt"/>
+<link rel="apple-touch-icon" href="icon.svg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100;300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -517,6 +524,7 @@ body {
   gap: 12px;
   padding: 12px 14px;
   align-items: center;
+  background: var(--surface);
 }
 .entry + .entry { border-top: 1px solid var(--border); }
 .entry { transition: background 0.15s; }
@@ -1237,6 +1245,7 @@ const fmtInt = (n) => {
   if (n === null || n === undefined || Number.isNaN(n)) return '—';
   return Number(n).toLocaleString('tr-TR');
 };
+const APP_VERSION = 'v14';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const parseISO = (s) => {if (!s) return null;const [y, m, d] = s.split('-').map(Number);return new Date(y, m - 1, d);};
 const fmtDate = (s) => {const d = parseISO(s);if (!d) return '';return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;};
@@ -1294,6 +1303,25 @@ function StoreProvider({ children }) {
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }
 const useStore = () => useContext(StoreCtx);
+
+/* ── i18n ──────────────────────────────────────────────── */
+const TRANSLATIONS = {
+  tr: {
+    appName: 'Yakıt Defteri',
+    ozet: 'Özet', gecmis: 'Geçmiş', takvim: 'Takvim', ayarlar: 'Ayarlar',
+    addFuel: 'Dolum ekle', noEntries: 'Henüz dolum kaydı yok',
+    noEntriesSub: 'İlk dolumunu ekleyerek yakıt tüketimini ve harcamalarını takip etmeye başla.',
+  },
+  en: {
+    appName: 'Fuel Log',
+    ozet: 'Summary', gecmis: 'History', takvim: 'Calendar', ayarlar: 'Settings',
+    addFuel: 'Add fuel', noEntries: 'No fuel entries yet',
+    noEntriesSub: 'Add your first fill-up to start tracking fuel consumption and costs.',
+  },
+};
+const LangCtx = createContext('tr');
+const useLang = () => useContext(LangCtx);
+const useT = () => { const lang = useLang(); return (key) => (TRANSLATIONS[lang] || TRANSLATIONS.tr)[key] || key; };
 
 /* ── Confirm ───────────────────────────────────────────── */
 const ConfirmCtx = createContext(null);
@@ -1560,6 +1588,16 @@ function OzetScreen() {
         </div>
       </div>
 
+      {myEntries.length === 0 ? (
+        <EmptyState
+          icon={<Icon.Fuel s={28} />}
+          title="Henüz dolum kaydı yok"
+          sub="İlk dolumunu ekleyerek yakıt tüketimini ve harcamalarını takip etmeye başla."
+          action={<><Icon.Plus s={14} /> Dolum ekle</>}
+          onAction={() => document.querySelector('.fab')?.click()}
+        />
+      ) : <>
+
       <div className="hero">
         <div className="hero-top">
           <span className="eyebrow">Ortalama Tüketim</span>
@@ -1658,68 +1696,64 @@ function OzetScreen() {
           </div>
         ) : (
           <div className="upcoming-list">
-            {combinedRows.map(({ km: r, ev: e }, i) => {
-              const kmOverdue = r && r.remaining !== null && r.remaining < 0;
-              const kmSoon = r && r.remaining !== null && r.remaining >= 0 && r.remaining <= 500;
-              const kmCls = r ? (kmOverdue ? 'expired' : kmSoon ? 'warn' : 'ok') : null;
-              const evExpired = e && e.days < 0;
-              const evSoon = e && e.days >= 0 && e.days < 15;
-              const evCls = e ? (evExpired ? 'expired' : evSoon ? 'warn' : '') : null;
-              const rowExpired = evExpired;
-              const rowSoon = !rowExpired && evSoon;
-              const iconExpired = kmOverdue || evExpired;
-              const iconWarn = !iconExpired && (kmSoon || evSoon);
-              return (
-                <div className={`upcoming-row${rowExpired ? ' expired' : ''}`} key={r ? r.id : `bev-${i}`}>
-                  <div className="left">
-                    <div className="iconbox"><Icon.Wrench s={16} /></div>
-                    <div>
-                      <div className="name">{r ? r.label : (e ? e.type : 'Bakım')}</div>
-                      <div className="date">
-                        {r && `Her ${fmtInt(r.intervalKm)} km`}{r && e && ' · '}{e && fmtDate(e.endISO)}
+            {[
+              ...combinedRows.map(({ km: r, ev: e }, i) => {
+                const kmOverdue = r && r.remaining !== null && r.remaining < 0;
+                const kmSoon = r && r.remaining !== null && r.remaining >= 0 && r.remaining <= 500;
+                const evExpired = e && e.days < 0;
+                const evSoon = e && e.days >= 0 && e.days <= 30;
+                const isRed = kmOverdue || evExpired;
+                const isYellow = !isRed && (kmSoon || evSoon);
+                return { kind: 'bak', r, e, i, p: isRed ? 0 : isYellow ? 1 : 2 };
+              }),
+              ...otherUpcoming.map(e => ({ kind: 'other', e, expired: false, p: e.days <= 30 ? 1 : 2 })),
+              ...otherExpired.map(e => ({ kind: 'other', e, expired: true, p: 0 })),
+            ].sort((a, b) => a.p - b.p).map((row) => {
+              if (row.kind === 'bak') {
+                const { r, e, i } = row;
+                const kmOverdue = r && r.remaining !== null && r.remaining < 0;
+                const kmSoon = r && r.remaining !== null && r.remaining >= 0 && r.remaining <= 500;
+                const kmCls = r ? (kmOverdue ? 'expired' : kmSoon ? 'warn' : 'ok') : null;
+                const evExpired = e && e.days < 0;
+                const evSoon = e && e.days >= 0 && e.days <= 30;
+                const evCls = e ? (evExpired ? 'expired' : evSoon ? 'warn' : 'ok') : null;
+                return (
+                  <div className={`upcoming-row${evExpired ? ' expired' : ''}`} key={r ? r.id : `bev-${i}`}>
+                    <div className="left">
+                      <div className="iconbox"><Icon.Wrench s={16} /></div>
+                      <div>
+                        <div className="name">{r ? r.label : (e ? e.type : 'Bakım')}</div>
+                        <div className="date">{r && `Her ${fmtInt(r.intervalKm)} km`}{r && e && ' · '}{e && fmtDate(e.endISO)}</div>
                       </div>
                     </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                      {r && (r.remaining !== null
+                        ? <span className={`remaining ${kmCls}`}>{kmOverdue ? `${fmtInt(Math.abs(r.remaining))} km geçti` : `${fmtInt(r.remaining)} km kaldı`}</span>
+                        : <span className="remaining">—</span>
+                      )}
+                      {e && <span className={`remaining ${evCls}`}>{evExpired ? `${Math.abs(e.days)} gün gecikti` : `${e.days} gün`}</span>}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                    {r && (r.remaining !== null
-                      ? <span className={`remaining ${kmCls}`}>{kmOverdue ? `${fmtInt(Math.abs(r.remaining))} km geçti` : `${fmtInt(r.remaining)} km kaldı`}</span>
-                      : <span className="remaining">—</span>
-                    )}
-                    {e && <span className={`remaining ${evCls}`}>{evExpired ? `${Math.abs(e.days)} gün önce` : `${e.days} gün`}</span>}
+                );
+              }
+              const { e, expired } = row;
+              return (
+                <div className={`upcoming-row${expired ? ' expired' : ''}`} key={e.id}>
+                  <div className="left">
+                    <div className="iconbox">{e.type === 'Kasko' || e.type === 'Sigorta' ? <Icon.Shield /> : e.type === 'Muayene' ? <Icon.ClipboardCheck /> : <Icon.Tag />}</div>
+                    <div>
+                      <div className="name">{e.type}</div>
+                      <div className="date">{fmtDate(e.endISO)}</div>
+                    </div>
                   </div>
+                  <span className={`remaining ${expired ? 'expired' : e.days <= 30 ? 'warn' : 'ok'}`}>{expired ? `${Math.abs(e.days)} gün gecikti` : `${e.days} gün`}</span>
                 </div>
               );
             })}
-            {otherUpcoming.map((e) =>
-              <div className="upcoming-row" key={e.id}>
-                <div className="left">
-                  <div className="iconbox">{e.type === 'Kasko' || e.type === 'Sigorta' ? <Icon.Shield /> : e.type === 'Muayene' ? <Icon.ClipboardCheck /> : <Icon.Tag />}</div>
-                  <div>
-                    <div className="name">{e.type}</div>
-                    <div className="date">{fmtDate(e.endISO)}</div>
-                  </div>
-                </div>
-                <span className={`remaining ${e.days <= 30 ? 'warn' : 'ok'}`}>{e.days} gün</span>
-              </div>
-            )}
-            {otherExpired.length > 0 && (combinedRows.length > 0 || otherUpcoming.length > 0) && (
-              <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
-            )}
-            {otherExpired.map((e) =>
-              <div className="upcoming-row expired" key={e.id}>
-                <div className="left">
-                  <div className="iconbox">{e.type === 'Kasko' || e.type === 'Sigorta' ? <Icon.Shield /> : e.type === 'Muayene' ? <Icon.ClipboardCheck /> : <Icon.Tag />}</div>
-                  <div>
-                    <div className="name">{e.type}</div>
-                    <div className="date">{fmtDate(e.endISO)}</div>
-                  </div>
-                </div>
-                <span className="remaining expired">{Math.abs(e.days)} gün önce</span>
-              </div>
-            )}
           </div>
         )}
       </>}
+      </> }
     </div>);
 
 }
@@ -1915,34 +1949,36 @@ function GecmisScreen({ onEdit }) {
             {entries.map((e) => {
               const dm = dayMon(e.dateISO);
               return (
-                <div className="entry" key={e.id}>
-                  <div className="entry-date">
-                    <div className="day">{dm.d}</div>
-                    <div className="mon">{dm.m}</div>
+                <SwipeableEntry key={e.id} onDelete={() => confirm('Bu dolum kaydı kalıcı olarak silinecek.', () => store.deleteEntry(e.id))}>
+                  <div className="entry">
+                    <div className="entry-date">
+                      <div className="day">{dm.d}</div>
+                      <div className="mon">{dm.m}</div>
+                    </div>
+                    <div className="entry-mid">
+                      <div className="entry-top">
+                        <span className="liters">{fmt(e.liters, 1)} L</span>
+                        <span className={`entry-chip ${e.full ? 'full' : 'partial'}`}>{e.full ? 'Tam' : 'Yarım'}</span>
+                      </div>
+                      <div className="entry-bot">
+                        <span className="price">{fmt(e.pricePerL, 2)} ₺/L</span>
+                        {consumptionMap.has(e.id) && <><span className="sep">·</span><span>{fmt(consumptionMap.get(e.id), 1)} L/100km</span></>}
+                      </div>
+                      <div className="entry-bot" style={{ marginTop: 1 }}>
+                        <span>{fmtInt(e.km)} km</span>
+                        {e.station && <><span className="sep">·</span><span>{e.station}</span></>}
+                      </div>
+                      {e.note && <div className="entry-bot" style={{ marginTop: 1, fontStyle: 'italic', color: 'var(--text-dim)' }}>{e.note}</div>}
+                    </div>
+                    <div className="entry-right">
+                      <div className="total">{fmt(e.liters * e.pricePerL, 2)}<span className="u">₺</span></div>
+                      <div className="icons">
+                        <button className="btn-icon" onClick={() => onEdit(e)}><Icon.Pencil /></button>
+                        <button className="btn-icon" onClick={() => confirm('Bu dolum kaydı kalıcı olarak silinecek.', () => store.deleteEntry(e.id))}><Icon.Trash /></button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="entry-mid">
-                    <div className="entry-top">
-                      <span className="liters">{fmt(e.liters, 1)} L</span>
-                      <span className={`entry-chip ${e.full ? 'full' : 'partial'}`}>{e.full ? 'Tam' : 'Yarım'}</span>
-                    </div>
-                    <div className="entry-bot">
-                      <span className="price">{fmt(e.pricePerL, 2)} ₺/L</span>
-                      {consumptionMap.has(e.id) && <><span className="sep">·</span><span>{fmt(consumptionMap.get(e.id), 1)} L/100km</span></>}
-                    </div>
-                    <div className="entry-bot" style={{ marginTop: 1 }}>
-                      <span>{fmtInt(e.km)} km</span>
-                      {e.station && <><span className="sep">·</span><span>{e.station}</span></>}
-                    </div>
-                    {e.note && <div className="entry-bot" style={{ marginTop: 1, fontStyle: 'italic', color: 'var(--text-dim)' }}>{e.note}</div>}
-                  </div>
-                  <div className="entry-right">
-                    <div className="total">{fmt(e.liters * e.pricePerL, 2)}<span className="u">₺</span></div>
-                    <div className="icons">
-                      <button className="btn-icon" onClick={() => onEdit(e)}><Icon.Pencil /></button>
-                      <button className="btn-icon" onClick={() => confirm('Bu dolum kaydı kalıcı olarak silinecek.', () => store.deleteEntry(e.id))}><Icon.Trash /></button>
-                    </div>
-                  </div>
-                </div>
+                </SwipeableEntry>
               );
             })}
           </div>
@@ -1965,7 +2001,7 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
   const kmAnyOverdue = kmReminders.some(r => (r.lastKm + r.intervalKm) - latestKm < 0);
 
   const badge = (days) => {
-    if (days < 0) return { label: `${Math.abs(days)} gün önce`, cls: 'expired' };
+    if (days < 0) return { label: `${Math.abs(days)} gün gecikti`, cls: 'expired' };
     if (days === 0) return { label: 'Bugün', cls: 'warn' };
     if (days <= 30) return { label: `${days} gün`, cls: 'warn' };
     return { label: `${days} gün`, cls: 'ok' };
@@ -2139,7 +2175,7 @@ function KmReminderSection() {
 }
 
 /* ── Ayarlar ───────────────────────────────────────────── */
-function AyarlarScreen({ theme, setTheme }) {
+function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik }) {
   const store = useStore();
   const confirm = useConfirm();
   const [bildirim, setBildirim] = useState(true);
@@ -2173,6 +2209,20 @@ function AyarlarScreen({ theme, setTheme }) {
         <div className="title-block">
           <h1>Ayarlar</h1>
           <div className="sub">Tercihler</div>
+        </div>
+      </div>
+
+      <div className="section-title"><h3>Dil</h3></div>
+      <div style={{ padding: '0 22px' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <button className={`chip-btn ${lang === 'tr' ? 'active' : ''}`} onClick={() => setLang('tr')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12 }}>
+              🇹🇷 Türkçe
+            </button>
+            <button className={`chip-btn`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12, opacity: 0.4, cursor: 'not-allowed' }} disabled>
+              EN English <span style={{ fontSize: 10, background: 'var(--border)', borderRadius: 4, padding: '1px 4px' }}>yakında</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -2233,13 +2283,75 @@ function AyarlarScreen({ theme, setTheme }) {
           <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
         </label>
         {importError && <div style={{ fontSize: 12, color: 'var(--negative)', marginBottom: 10, textAlign: 'center' }}>{importError}</div>}
-        <button className="btn-ghost" style={{ width: '100%', padding: 12, justifyContent: 'center', color: 'var(--text-2)' }}
+        <button className="btn-ghost" style={{ width: '100%', padding: 12, justifyContent: 'center', color: 'var(--text-2)', marginBottom: 10 }}
         onClick={() => confirm('Tüm veriler silinecek ve örnek verilerle sıfırlanacak.', () => store.resetToSeed())}>
           <Icon.Trash /> Verileri sıfırla
         </button>
+        <button className="btn-ghost" style={{ width: '100%', padding: 12, justifyContent: 'center', color: 'var(--text-2)', marginBottom: 10 }} onClick={onGizlilik}>
+          <Icon.Shield s={16} /> Gizlilik Politikası
+        </button>
+        <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-dim)', paddingTop: 4 }}>Yakıt Defteri {APP_VERSION}</div>
       </div>
     </div>);
 
+}
+
+/* ── Gizlilik ──────────────────────────────────────────── */
+function GizlilikScreen({ onBack }) {
+  return (
+    <div>
+      <div className="app-header">
+        <button className="btn-icon" onClick={onBack} style={{ marginRight: 8 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
+        </button>
+        <div className="brand-name">Gizlilik Politikası</div>
+      </div>
+
+      <div style={{ padding: '8px 22px 40px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+        <div>
+          <p style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 16 }}>Son güncelleme: Mayıs 2026</p>
+          <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)' }}>
+            Yakıt Defteri, aracınıza ait yakıt dolumlarını ve bakım etkinliklerini takip etmenizi sağlayan kişisel bir uygulamadır.
+            Gizliliğiniz bizim için önceliklidir.
+          </p>
+        </div>
+
+        {[
+          {
+            title: 'Toplanan Veriler',
+            content: 'Uygulama hiçbir kişisel veri toplamaz. Girdiğiniz dolum kayıtları, bakım etkinlikleri ve tercihler yalnızca cihazınızın yerel depolama alanında (localStorage) saklanır. Bu veriler hiçbir sunucuya gönderilmez.'
+          },
+          {
+            title: 'Veri Paylaşımı',
+            content: 'Verileriniz üçüncü taraflarla paylaşılmaz, satılmaz ve reklam amacıyla kullanılmaz.'
+          },
+          {
+            title: 'Üçüncü Taraf Hizmetler',
+            content: 'Uygulama, arayüz bileşenleri için unpkg.com CDN\'ini ve yazı tipleri için Google Fonts\'u kullanır. Bu hizmetler yalnızca uygulama yüklenirken erişilir ve kendi gizlilik politikalarına tabidir. Çevrimdışı kullanımda bu bağlantılar kurulmaz.'
+          },
+          {
+            title: 'Veri Silme',
+            content: 'Tüm verilerinizi istediğiniz zaman Ayarlar ekranından silebilirsiniz. Tarayıcı verilerini temizlemek de aynı sonucu doğurur.'
+          },
+          {
+            title: 'Çocukların Gizliliği',
+            content: 'Uygulama 13 yaş altı çocuklara yönelik değildir ve bu yaş grubundan bilerek veri toplanmaz.'
+          },
+          {
+            title: 'İletişim',
+            content: 'Gizlilik politikasıyla ilgili sorularınız için arslankaan2901@gmail.com adresine ulaşabilirsiniz.'
+          },
+        ].map(({ title, content }) => (
+          <div key={title}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{title}</div>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)', margin: 0 }}>{content}</p>
+          </div>
+        ))}
+
+      </div>
+    </div>
+  );
 }
 
 /* ── Sheets ────────────────────────────────────────────── */
@@ -2505,7 +2617,16 @@ function EventSheet({ open, onClose, editing, onSaved }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
           <div>
             <div className="label">Başlangıç</div>
-            <input className="input mono" type="date" value={startISO} onChange={(e) => setStartISO(e.target.value)} />
+            <input className="input mono" type="date" value={startISO} onChange={(e) => {
+              const val = e.target.value;
+              setStartISO(val);
+              if ((type === 'Kasko' || type === 'Sigorta' || type === 'Muayene' || type === 'Bakım') && val) {
+                const d = new Date(val);
+                d.setFullYear(d.getFullYear() + (type === 'Muayene' ? 2 : 1));
+                setEndISO(d.toISOString().slice(0, 10));
+                setErrors((p) => ({ ...p, endISO: undefined }));
+              }
+            }} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
@@ -2535,6 +2656,76 @@ function EventSheet({ open, onClose, editing, onSaved }) {
       </div>
     </div>);
 
+}
+
+/* ── Swipeable Entry ───────────────────────────────────── */
+function SwipeableEntry({ children, onDelete }) {
+  const [offset, setOffset] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const dragRef = useRef(null);
+  const startX = useRef(null);
+  const startY = useRef(null);
+  const isHoriz = useRef(false);
+  const liveOffset = useRef(0);
+  const DELETE_W = 72;
+
+  useEffect(() => {
+    const el = dragRef.current;
+    if (!el) return;
+    const onStart = (e) => {
+      startX.current = e.touches[0].clientX;
+      startY.current = e.touches[0].clientY;
+      isHoriz.current = false;
+    };
+    const onMove = (e) => {
+      if (startX.current === null) return;
+      const dx = e.touches[0].clientX - startX.current;
+      const dy = e.touches[0].clientY - startY.current;
+      if (!isHoriz.current) {
+        if (Math.abs(dy) > Math.abs(dx)) return;
+        if (Math.abs(dx) < 6) return;
+        isHoriz.current = true;
+      }
+      if (dx > 4) { liveOffset.current = 0; setOffset(0); setSwiping(false); return; }
+      e.preventDefault();
+      setSwiping(true);
+      const next = Math.max(dx, -(DELETE_W + 16));
+      liveOffset.current = next;
+      setOffset(next);
+    };
+    const onEnd = () => {
+      setSwiping(false);
+      const snap = liveOffset.current <= -(DELETE_W * 0.4) ? -DELETE_W : 0;
+      liveOffset.current = snap;
+      setOffset(snap);
+      startX.current = null;
+    };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+    };
+  }, []);
+
+  const close = () => { liveOffset.current = 0; setOffset(0); };
+  const t = swiping ? 'none' : 'transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94)';
+
+  return (
+    <div style={{ overflow: 'hidden' }}>
+      <div ref={dragRef} style={{ display: 'flex', transform: `translateX(${offset}px)`, transition: t }} onClick={() => { if (offset < 0) close(); }}>
+        <div style={{ flex: '0 0 100%', minWidth: 0 }}>
+          {children}
+        </div>
+        <div style={{ flex: `0 0 ${DELETE_W}px`, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+          <Icon.Trash s={20} color="#fff" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ── Km Prompt ─────────────────────────────────────────── */
@@ -2582,6 +2773,8 @@ function KmPromptModal({ km, onClose }) {
 /* ── Root App ──────────────────────────────────────────── */
 function App() {
   const [screen, setScreen] = useState('ozet');
+  const [lang, setLang] = useState(() => localStorage.getItem('yakit-lang') || 'tr');
+  useEffect(() => { localStorage.setItem('yakit-lang', lang); }, [lang]);
   const [theme, setTheme] = useState(() => localStorage.getItem('yakit-theme') || 'system');
   useEffect(() => { localStorage.setItem('yakit-theme', theme); }, [theme]);
   const [systemTheme, setSystemTheme] = useState(() => window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
@@ -2597,7 +2790,7 @@ function App() {
   const [kmPrompt, setKmPrompt] = useState({ open: false, km: 0 });
 
   return (
-    <StoreProvider><ConfirmProvider>
+    <LangCtx.Provider value={lang}><StoreProvider><ConfirmProvider>
       <div className="ios-device">
         <div className="ios-screen" data-theme={effectiveTheme}>
           <div className="ios-dynamic-island" />
@@ -2615,13 +2808,14 @@ function App() {
                 {screen === 'ozet' && <OzetScreen />}
                 {screen === 'gecmis' && <GecmisScreen onEdit={(e) => setEntrySheet({ open: true, editing: e })} />}
                 {screen === 'takvim' && <TakvimScreen onAddEvent={() => setEventSheet({ open: true, editing: null })} onEditEvent={(e) => setEventSheet({ open: true, editing: e })} />}
-                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} />}
+                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onGizlilik={() => setScreen('gizlilik')} />}
+                {screen === 'gizlilik' && <GizlilikScreen onBack={() => setScreen('ayarlar')} />}
               </div>
             </div>
-            <nav className="bottom-nav">
+            <nav className="bottom-nav" style={{ display: screen === 'gizlilik' ? 'none' : '' }}>
               <button className={`nav-btn ${screen === 'ozet' ? 'active' : ''}`} onClick={() => setScreen('ozet')}><Icon.Home s={22} /><span>Özet</span></button>
               <button className={`nav-btn ${screen === 'gecmis' ? 'active' : ''}`} onClick={() => setScreen('gecmis')}><Icon.History s={22} /><span>Geçmiş</span></button>
-              <div className="fab-wrap"><button className="fab" onClick={() => setEntrySheet({ open: true, editing: null })}><Icon.Plus s={26} /></button></div>
+              {screen !== 'gizlilik' && <div className="fab-wrap"><button className="fab" onClick={() => setEntrySheet({ open: true, editing: null })}><Icon.Plus s={26} /></button></div>}
               <button className={`nav-btn ${screen === 'takvim' ? 'active' : ''}`} onClick={() => setScreen('takvim')}><Icon.Calendar s={22} /><span>Takvim</span></button>
               <button className={`nav-btn ${screen === 'ayarlar' ? 'active' : ''}`} onClick={() => setScreen('ayarlar')}><Icon.Settings s={22} /><span>Ayarlar</span></button>
             </nav>
@@ -2632,11 +2826,16 @@ function App() {
           {kmPrompt.open && <KmPromptModal km={kmPrompt.km} onClose={() => setKmPrompt({ open: false, km: 0 })} />}
         </div>
       </div>
-    </ConfirmProvider></StoreProvider>);
+    </ConfirmProvider></StoreProvider></LangCtx.Provider>);
 
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+}
 </script>
 </body>
 </html>
