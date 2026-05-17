@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useMemo, useContext, createContext, useRef } from 'react';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import './index.css';
 
 /* ── Empty State bileşeni ───────────────────────────────── */
@@ -474,18 +475,6 @@ function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false }
   );
 }
 
-/* ── Brand icon (Fuel pump in rounded square) ─────────── */
-function BrandIcon() {
-  return (
-    <div className="brand-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="10" height="18" rx="1.5" />
-        <path d="M3 12h10" />
-        <path d="M13 8h2.5a1.5 1.5 0 0 1 1.5 1.5v5.5a1.5 1.5 0 0 0 3 0V8.5a1 1 0 0 0-.29-.71l-1.71-1.71" />
-      </svg>
-    </div>);
-
-}
 
 /* ── Gider Dağılımı ────────────────────────────────────── */
 function GiderDagilimi() {
@@ -758,7 +747,6 @@ function OzetScreen() {
   return (
     <div>
       <div className="app-header">
-        <BrandIcon />
         <div className="brand-name">Vitesse</div>
       </div>
 
@@ -1030,7 +1018,6 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
   return (
     <div>
       <div className="app-header">
-        <BrandIcon />
         <div className="brand-name">Vitesse</div>
       </div>
       <div style={{ padding: '12px 18px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1245,7 +1232,6 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
   return (
     <div>
       <div className="app-header">
-        <BrandIcon />
         <div className="brand-name">Vitesse</div>
       </div>
       <div className="title-row">
@@ -1403,11 +1389,14 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
   const bildirim = !!(store.prefs?.bildirimler);
   const handleBildirimToggle = async () => {
     if (!bildirim) {
-      if (!('Notification' in window)) return;
-      const perm = await Notification.requestPermission();
-      if (perm === 'granted') store.setPref('bildirimler', true);
+      const { display } = await LocalNotifications.requestPermissions();
+      if (display === 'granted') store.setPref('bildirimler', true);
     } else {
       store.setPref('bildirimler', false);
+      const pending = await LocalNotifications.getPending();
+      if (pending.notifications.length > 0) {
+        await LocalNotifications.cancel({ notifications: pending.notifications });
+      }
     }
   };
 
@@ -1435,7 +1424,6 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
   return (
     <div>
       <div className="app-header">
-        <BrandIcon />
         <div className="brand-name">Vitesse</div>
       </div>
       <div className="title-row">
@@ -2063,31 +2051,59 @@ function NotificationChecker() {
   const store = useStore();
   useEffect(() => {
     if (!store.prefs?.bildirimler) return;
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    const today = todayISO();
-    const KEY = 'yakit-notified';
-    const notified = JSON.parse(localStorage.getItem(KEY) || '{}');
-    if (notified[today]) return;
-    const due = (store.events || []).filter(ev => {
-      const days = daysUntil(ev.endISO);
-      return days >= 0 && days <= (ev.notifyDays || 30);
-    });
-    if (due.length > 0) {
-      const body = due.length === 1
-        ? (daysUntil(due[0].endISO) === 0 ? `${due[0].type} bugün sona eriyor!` : `${due[0].type} bitmesine ${daysUntil(due[0].endISO)} gün kaldı.`)
-        : `${due.length} etkinliğin süresi yaklaşıyor.`;
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(reg => reg.showNotification('Vitesse', { body, icon: './icon.svg', badge: './icon.svg' }));
-      } else {
-        new Notification('Vitesse', { body, icon: './icon.svg' });
+    const run = async () => {
+      const pending = await LocalNotifications.getPending();
+      if (pending.notifications.length > 0) {
+        await LocalNotifications.cancel({ notifications: pending.notifications });
       }
-      notified[today] = true;
-    }
-    const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
-    const cut = weekAgo.toISOString().slice(0, 10);
-    Object.keys(notified).forEach(k => { if (k < cut) delete notified[k]; });
-    localStorage.setItem(KEY, JSON.stringify(notified));
-  }, [store.events, store.prefs?.bildirimler]);
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      const KEY = 'yakit-notified';
+      const notified = JSON.parse(localStorage.getItem(KEY) || '{}');
+      const shownToday = !!notified[todayStr];
+      const futureNotifs = [];
+      const immediateNotifs = [];
+      (store.events || []).forEach((ev, i) => {
+        if (!ev.endISO) return;
+        const endDate = new Date(ev.endISO + 'T00:00:00');
+        const daysLeft = Math.round((endDate - now) / 86400000);
+        if (daysLeft < 0) return;
+        const notifyDays = ev.notifyDays || 30;
+        if (daysLeft > notifyDays) {
+          const fireDate = new Date(endDate);
+          fireDate.setDate(fireDate.getDate() - notifyDays);
+          fireDate.setHours(9, 0, 0, 0);
+          if (fireDate > now) {
+            futureNotifs.push({ id: 1000 + i, title: 'Vitesse', body: `${ev.type} bitmesine ${notifyDays} gün kaldı.`, schedule: { at: fireDate } });
+          }
+        } else if (!shownToday) {
+          const body = daysLeft === 0 ? `${ev.type} bugün sona eriyor!` : `${ev.type} bitmesine ${daysLeft} gün kaldı.`;
+          immediateNotifs.push({ id: 1000 + i, title: 'Vitesse', body, schedule: { at: new Date(now.getTime() + 2000) } });
+        }
+      });
+      if (!shownToday) {
+        const latestKm = Math.max(0, ...(store.entries || []).map(e => e.km || 0));
+        if (latestKm > 0) {
+          const overdue = ((store.prefs || {}).kmReminders || []).filter(r => latestKm >= r.lastKm + r.intervalKm);
+          if (overdue.length > 0) {
+            const body = overdue.length === 1
+              ? `${overdue[0].label} zamanı geldi! (${fmtInt(latestKm)} km)`
+              : `${overdue.length} km hatırlatıcısı zamanı geldi.`;
+            immediateNotifs.push({ id: 2000, title: 'Vitesse', body, schedule: { at: new Date(now.getTime() + 4000) } });
+          }
+        }
+      }
+      const all = [...futureNotifs, ...immediateNotifs];
+      if (all.length > 0) await LocalNotifications.schedule({ notifications: all });
+      if (immediateNotifs.length > 0 && !shownToday) {
+        notified[todayStr] = true;
+        const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+        Object.keys(notified).forEach(k => { if (k < cutoff) delete notified[k]; });
+        localStorage.setItem(KEY, JSON.stringify(notified));
+      }
+    };
+    run().catch(() => {});
+  }, [store.events, store.prefs?.bildirimler, store.prefs?.kmReminders, store.entries]);
   return null;
 }
 
