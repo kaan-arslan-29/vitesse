@@ -1,8 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="112" fill="#f5b342"/>
-  <g transform="translate(128, 96) scale(10.67)" stroke="#1a1208" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <rect x="3" y="3" width="10" height="18" rx="1.5"/>
-    <path d="M3 12h10"/>
-    <path d="M13 8h2.5a1.5 1.5 0 0 1 1.5 1.5v5.5a1.5 1.5 0 0 0 3 0V8.5a1 1 0 0 0-.29-.71l-1.71-1.71"/>
-  </g>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1C1C2E"/>
+      <stop offset="100%" stop-color="#0A0A12"/>
+    </linearGradient>
+    <linearGradient id="pump" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD060"/>
+      <stop offset="100%" stop-color="#F4AF2D"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="114" fill="url(#bg)"/>
+
+  <!-- Subtle top glow -->
+  <ellipse cx="256" cy="80" rx="180" ry="80" fill="#F4AF2D" opacity="0.06"/>
+
+  <!-- Pump body -->
+  <rect x="142" y="118" width="182" height="272" rx="20" fill="url(#pump)" filter="url(#glow)"/>
+
+  <!-- Display screen (dark cutout) -->
+  <rect x="166" y="148" width="134" height="82" rx="12" fill="#0A0A12"/>
+
+  <!-- Screen detail lines (golden) -->
+  <rect x="186" y="170" width="60" height="11" rx="5.5" fill="#F4AF2D" opacity="0.40"/>
+  <rect x="186" y="191" width="94" height="18" rx="7" fill="#F4AF2D" opacity="0.70"/>
+
+  <!-- Pump base -->
+  <rect x="130" y="370" width="206" height="32" rx="12" fill="url(#pump)"/>
+
+  <!-- Hose arm -->
+  <path d="M324 238 H370 Q400 238 400 268 V320 Q400 346 424 346 H454"
+        stroke="url(#pump)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Nozzle tip -->
+  <rect x="438" y="326" width="42" height="40" rx="10" fill="url(#pump)"/>
+  <rect x="452" y="366" width="18" height="28" rx="6" fill="url(#pump)"/>
 </svg>

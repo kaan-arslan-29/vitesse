@@ -1,17 +1,23 @@
 {
-  "name": "Yakıt Defteri",
-  "short_name": "Yakıt",
-  "description": "Kişisel yakıt ve araç bakım takip uygulaması",
+  "name": "Vitesse - Araç Defteri",
+  "short_name": "Vitesse",
+  "description": "Kişisel araç gider, yakıt ve bakım takip uygulaması",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#f5b342",
-  "background_color": "#0d0d10",
+  "theme_color": "#F4AF2D",
+  "background_color": "#0B0F11",
   "icons": [
     {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "icons/icon-192.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
       "purpose": "any maskable"
     }
   ]

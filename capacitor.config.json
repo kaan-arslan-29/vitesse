@@ -1,0 +1,12 @@
+{
+  "appId": "com.kaanarslan.yakitdefteri",
+  "appName": "Vitesse",
+  "webDir": "dist",
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0e0e13",
+      "overlaysWebView": true
+    }
+  }
+}
