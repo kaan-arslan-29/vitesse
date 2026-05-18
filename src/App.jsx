@@ -349,11 +349,11 @@ function averageConsumption(pts) {
 }
 
 /* ── Area Chart ────────────────────────────────────────── */
-function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false }) {
+function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false, labelOffset = 12, padLeft = 23 }) {
   const [active, setActive] = useState(null);
   if (!data || data.length < 2) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-2)', fontSize: 14 }}>Yetersiz veri</div>;
   const W = 320, H = 160;
-  const pad = { t: 12, r: 14, b: 8, l: 38 };
+  const pad = { t: 12, r: 14, b: 8, l: padLeft };
   const cW = W - pad.l - pad.r;
   const cH = H - pad.t - pad.b;
 
@@ -404,7 +404,7 @@ function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false }
   const areaPath = `${linePath} L ${xs[xs.length - 1]},${pad.t + cH} L ${xs[0]},${pad.t + cH} Z`;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', display: 'block' }} onClick={() => setActive(null)}>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', display: 'block', overflow: 'visible' }} onClick={() => setActive(null)}>
       <defs>
         <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
@@ -417,7 +417,7 @@ function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false }
         return (
           <g key={i}>
             <line x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray="3 5" strokeOpacity="0.7" />
-            <text x={pad.l - 12} y={y + 3.5} fontSize="10" textAnchor="end" fill="var(--color-chart-axis)" fontFamily="Geist Mono, monospace">
+            <text x={pad.l - labelOffset} y={y + 3.5} fontSize="10" textAnchor="end" fill="var(--color-chart-axis)" fontFamily="Geist Mono, monospace">
               {val.toFixed(1)}
             </text>
           </g>
@@ -546,8 +546,11 @@ function AylikBarChart() {
     return [...ys].sort((a, b) => b.localeCompare(a));
   }, [store.entries, currentYear]);
 
+  const currentMonth = useMemo(() => new Date().getMonth(), []);
+  const lastMonthIdx = year === currentYear ? currentMonth : 11;
+
   const monthData = useMemo(() => (
-    Array.from({ length: 12 }, (_, i) => {
+    Array.from({ length: lastMonthIdx + 1 }, (_, i) => {
       const key = `${year}-${String(i + 1).padStart(2, '0')}`;
       const es = store.entries.filter(e => e.dateISO.startsWith(key));
       return {
@@ -555,17 +558,18 @@ function AylikBarChart() {
         spend: es.reduce((s, e) => s + e.liters * e.pricePerL, 0),
       };
     })
-  ), [store.entries, year]);
+  ), [store.entries, year, lastMonthIdx]);
 
   const values = monthData.map(d => mode === 'L' ? d.liters : d.spend);
   const hasAny = values.some(v => v > 0);
   if (!hasAny) return null;
 
+  const numBars = monthData.length;
   const W = 320, H = 148;
-  const pad = { t: 12, r: 10, b: 26, l: 38 };
+  const pad = { t: 12, r: 10, b: 26, l: 19 };
   const cW = W - pad.l - pad.r;
   const cH = H - pad.t - pad.b;
-  const slot = cW / 12;
+  const slot = cW / numBars;
   const barW = Math.max(6, Math.floor(slot * 0.68));
 
   const maxVal = Math.max(...values);
@@ -593,7 +597,7 @@ function AylikBarChart() {
           {years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', display: 'block' }} onClick={() => setActive(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', display: 'block', overflow: 'visible' }} onClick={() => setActive(null)}>
         <line x1={pad.l} y1={pad.t + cH} x2={W - pad.r} y2={pad.t + cH} stroke="var(--border)" strokeWidth="1" />
         {gridLines.map(({ val, y }, i) => (
           <g key={i}>
@@ -1146,7 +1150,7 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
             <span className="meta">{timeFilter === 'all' && priceHist.length >= 2 ? `${fmtDate(priceHist[0].dateISO)} – ${fmtDate(priceHist[priceHist.length - 1].dateISO)}` : { '3month': 'Son 3 ay', year: 'Bu yıl' }[timeFilter]}</span>
           </div>
           <div className="chart-card">
-            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit="₺/L" showMinMax={!!(store.prefs && store.prefs.showMinMax)} />
+            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit="₺/L" showMinMax={!!(store.prefs && store.prefs.showMinMax)} labelOffset={2} padLeft={29} />
           </div>
         </>
       }
