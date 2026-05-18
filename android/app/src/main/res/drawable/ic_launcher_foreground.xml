@@ -2,7 +2,7 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <bitmap
-            android:src="@drawable/ikon_genisletilmis"
+            android:src="@drawable/ikon_final2"
             android:gravity="fill"/>
     </item>
 </layer-list>

@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useMemo, useContext, createContext, useRef } from 'react';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import * as XLSX from 'xlsx';
 import './index.css';
 
 /* ── Empty State bileşeni ───────────────────────────────── */
@@ -168,6 +169,12 @@ const Icon = {
   <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
       <circle cx="7.5" cy="7.5" r="1" fill="currentColor" stroke="none" />
+    </svg>,
+
+  MapPin: ({ s = 20 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 10c0 6-8 13-8 13s-8-7-8-13a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
     </svg>
 
 };
@@ -213,6 +220,7 @@ const monthLabel = (yyyyMM) => { const [y, m] = yyyyMM.split('-'); return `${TR_
 const todayISO = () => {const d = new Date();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;};
 const yesterdayISO = () => {const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;};
 const daysUntil = (iso) => {const b = parseISO(iso);if (!b) return 0;return Math.round((b - new Date()) / 86400000);};
+const haversineKm = (lat1, lon1, lat2, lon2) => { const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180; const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2; return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); };
 const parseNum = (s) => {
   if (typeof s !== 'string') return Number(s) || 0;
   return parseFloat(s.replace(',', '.')) || 0;
@@ -349,7 +357,7 @@ function averageConsumption(pts) {
 }
 
 /* ── Area Chart ────────────────────────────────────────── */
-function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false, labelOffset = 12, padLeft = 23 }) {
+function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false, labelOffset = 12, padLeft = 23, curveOffset = 0 }) {
   const [active, setActive] = useState(null);
   if (!data || data.length < 2) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-2)', fontSize: 14 }}>Yetersiz veri</div>;
   const W = 320, H = 160;
@@ -375,7 +383,8 @@ function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false, 
   const yMax = gridMax + step * 0.3;
   const range = yMax - yMin;
 
-  const xs = data.map((_, i) => pad.l + (i / (data.length - 1)) * cW);
+  const curveL = pad.l + curveOffset;
+  const xs = data.map((_, i) => curveL + (i / (data.length - 1)) * (cW - curveOffset));
   const ys = data.map((v) => pad.t + ((yMax - v) / range) * cH);
 
   const minVal = Math.min(...data), maxVal = Math.max(...data);
@@ -657,6 +666,96 @@ function AylikBarChart() {
   );
 }
 
+/* ── Dışa Aktarma Seçimi ───────────────────────────────── */
+function ExportSheet({ onClose }) {
+  const store = useStore();
+
+  const exportJSON = () => {
+    const blob = new Blob(
+      [JSON.stringify({ entries: store.entries, events: store.events || [], prefs: store.prefs || {} }, null, 2)],
+      { type: 'application/json' }
+    );
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `vitesse-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    onClose();
+  };
+
+  const exportExcel = () => {
+    const wb = XLSX.utils.book_new();
+
+    const dolumlar = [...store.entries]
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
+      .map(e => ({
+        'Tarih': e.dateISO,
+        'Km': e.km,
+        'Litre': e.liters,
+        'Fiyat/L (₺)': e.pricePerL,
+        'Toplam (₺)': parseFloat((e.liters * e.pricePerL).toFixed(2)),
+        'Tam Depo': e.full ? 'Evet' : 'Hayır',
+        'İstasyon': e.station || '',
+        'Not': e.note || '',
+      }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dolumlar), 'Dolumlar');
+
+    const takvim = (store.events || []).map(e => ({
+      'Tür': e.type,
+      'Başlangıç': e.startISO || '',
+      'Bitiş': e.endISO || '',
+      'Maliyet (₺)': e.cost ?? '',
+      'Not': e.note || '',
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(takvim.length ? takvim : [{}]), 'Takvim');
+
+    XLSX.writeFile(wb, `vitesse-${todayISO()}.xlsx`);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal compact" onClick={e => e.stopPropagation()}>
+        <div className="modal-handle" />
+        <div className="modal-head">
+          <h2>Dışa Aktar</h2>
+          <button className="btn-icon" onClick={onClose}><Icon.X /></button>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-2)', margin: '0 0 16px' }}>
+          Hangi formatta dışa aktarmak istiyorsun?
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}
+            onClick={exportExcel}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(34,197,94,0.12)', color: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>Excel (.xlsx)</div>
+              <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>Dolumlar ve takvim ayrı sekmelerde</div>
+            </div>
+          </button>
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}
+            onClick={exportJSON}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(99,102,241,0.12)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2l2 4 2-8 2 4h2"/></svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>JSON (.json)</div>
+              <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>İçe aktarma için uygun, tam yedek</div>
+            </div>
+          </button>
+        </div>
+        <div style={{ height: 4 }} />
+      </div>
+    </div>
+  );
+}
+
 /* ── LPG Hesaplama ─────────────────────────────────────── */
 function LpgSheet({ onClose }) {
   const store = useStore();
@@ -770,7 +869,96 @@ function LpgSheet({ onClose }) {
 }
 
 /* ── Özet ──────────────────────────────────────────────── */
-function OzetScreen() {
+/* ── Yakındaki İstasyonlar ─────────────────────────────── */
+function NearbyStationsSheet({ onClose }) {
+  const [status, setStatus] = useState('loading'); // loading | ok | error
+  const [stations, setStations] = useState([]);
+  const [userPos, setUserPos] = useState(null);
+  const [errMsg, setErrMsg] = useState('');
+
+  useEffect(() => {
+    if (!navigator.geolocation) { setStatus('error'); setErrMsg('Konum erişimi bu cihazda desteklenmiyor.'); return; }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const { latitude: lat, longitude: lon } = coords;
+        setUserPos({ lat, lon });
+        const query = `[out:json][timeout:10];node[amenity=fuel](around:5000,${lat},${lon});out;`;
+        fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`)
+          .then(r => r.json())
+          .then(data => {
+            const list = (data.elements || [])
+              .map(n => ({
+                id: n.id,
+                lat: n.lat,
+                lon: n.lon,
+                name: n.tags?.name || n.tags?.brand || n.tags?.operator || 'Yakıt İstasyonu',
+                brand: n.tags?.brand || null,
+                dist: haversineKm(lat, lon, n.lat, n.lon),
+              }))
+              .sort((a, b) => a.dist - b.dist)
+              .slice(0, 20);
+            setStations(list);
+            setStatus('ok');
+          })
+          .catch(() => { setStatus('error'); setErrMsg('İstasyonlar yüklenemedi. İnternet bağlantısını kontrol edin.'); });
+      },
+      () => { setStatus('error'); setErrMsg('Konum alınamadı. Lütfen konum iznini kontrol edin.'); }
+    );
+  }, []);
+
+  const navigate = (s) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}&travelmode=driving`;
+    window.open(url, '_blank', 'noopener');
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxHeight: '80%' }}>
+        <div className="modal-handle" />
+        <div className="modal-head">
+          <h2>Yakındaki İstasyonlar</h2>
+          <button className="btn-icon" onClick={onClose}><Icon.X /></button>
+        </div>
+        {status === 'loading' && (
+          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-2)', fontSize: 14 }}>
+            Konum ve istasyonlar yükleniyor…
+          </div>
+        )}
+        {status === 'error' && (
+          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--negative)', fontSize: 14 }}>{errMsg}</div>
+        )}
+        {status === 'ok' && stations.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-2)', fontSize: 14 }}>5 km çevresinde istasyon bulunamadı.</div>
+        )}
+        {status === 'ok' && stations.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            {stations.map(s => (
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--bg-2)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon.Fuel s={17} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 400, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 1 }}>{s.dist < 1 ? `${Math.round(s.dist * 1000)} m` : `${s.dist.toFixed(1)} km`}</div>
+                </div>
+                <button
+                  className="btn btn-accent"
+                  style={{ padding: '7px 13px', fontSize: 13, flexShrink: 0 }}
+                  onClick={() => navigate(s)}
+                >
+                  Yol Tarifi
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ height: 8 }} />
+      </div>
+    </div>
+  );
+}
+
+function OzetScreen({ onOpenNearby }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const [consFilter, setConsFilter] = useState('all');
   const store = useStore();
@@ -937,6 +1125,32 @@ function OzetScreen() {
           <div className="value">{fmt(animYearSpend, 0)}<span className="u">₺</span></div>
           <div className="sub">bu yıl · {fmt(yearEntries.reduce((s, e) => s + e.liters, 0), 1)} L</div>
         </div>
+      </div>
+
+      <div style={{ margin: '10px 18px 0', display: 'flex', gap: 8 }}>
+        <button
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', color: 'var(--text)', fontSize: 13 }}
+          onClick={() => {
+            if (!navigator.geolocation) { alert('Konum erişimi desteklenmiyor.'); return; }
+            navigator.geolocation.getCurrentPosition(
+              ({ coords }) => {
+                const url = `https://www.google.com/maps/search/akaryak%C4%B1t+istasyonu/@${coords.latitude},${coords.longitude},15z`;
+                window.open(url, '_blank', 'noopener');
+              },
+              () => alert('Konum alınamadı. Lütfen konum iznini kontrol edin.')
+            );
+          }}
+        >
+          <Icon.MapPin s={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          Google Maps
+        </button>
+        <button
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', color: 'var(--text)', fontSize: 13 }}
+          onClick={onOpenNearby}
+        >
+          <Icon.Fuel s={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          Uygulama İçi
+        </button>
       </div>
 
       {consPts.length >= 2 &&
@@ -1150,7 +1364,7 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
             <span className="meta">{timeFilter === 'all' && priceHist.length >= 2 ? `${fmtDate(priceHist[0].dateISO)} – ${fmtDate(priceHist[priceHist.length - 1].dateISO)}` : { '3month': 'Son 3 ay', year: 'Bu yıl' }[timeFilter]}</span>
           </div>
           <div className="chart-card">
-            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit="₺/L" showMinMax={!!(store.prefs && store.prefs.showMinMax)} labelOffset={2} padLeft={29} />
+            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit="₺/L" showMinMax={!!(store.prefs && store.prefs.showMinMax)} labelOffset={-2} padLeft={19} curveOffset={10} />
           </div>
         </>
       }
@@ -1307,33 +1521,51 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
     const isExpired = e.days < 0 || isBakimKmOverdue;
     const isWarn = !isExpired && e.days <= 30;
     const isOk = !isExpired && !isWarn;
+    const progressPct = (() => {
+      if (!e.startISO || !e.endISO) return null;
+      const startD = parseISO(e.startISO);
+      const endD = parseISO(e.endISO);
+      if (!startD || !endD) return null;
+      const total = endD.getTime() - startD.getTime();
+      if (total <= 0) return null;
+      const elapsed = Date.now() - startD.getTime();
+      return Math.min(100, Math.max(0, (elapsed / total) * 100));
+    })();
+    const barColor = isExpired ? 'var(--negative)' : isWarn ? '#eab308' : 'var(--accent)';
     return (
       <SwipeableEntry key={e.id} onDelete={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}>
-        <div className={`upcoming-row${isExpired ? ' expired' : ''}`}>
-          <div className="left">
-            <div className="iconbox">
-              {typeIcon(e.type)}
-            </div>
-            <div>
-              <div className="name">{e.type}</div>
-              <div className="date">
-                {e.startISO && <span style={{ color: 'var(--text-2)' }}>{fmtDate(e.startISO)} → </span>}
-                <span style={{ color: 'var(--text)', fontWeight: 500 }}>{fmtDate(e.endISO)}</span>
+        <div className={`upcoming-row${isExpired ? ' expired' : ''}`} style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="left">
+              <div className="iconbox">
+                {typeIcon(e.type)}
               </div>
-              {(e.cost || e.note || e.serviceKm) && <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {e.serviceKm && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmtInt(e.serviceKm)} km</span>}
-                {e.serviceKm && (e.cost || e.note) && <span style={{ color: 'var(--text-dim)' }}>·</span>}
-                {e.cost && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(e.cost, 2)} ₺</span>}
-                {e.cost && e.note && <span style={{ color: 'var(--text-dim)' }}>·</span>}
-                {e.note && <span style={{ fontStyle: 'italic' }}>{e.note}</span>}
-              </div>}
+              <div>
+                <div className="name">{e.type}</div>
+                <div className="date">
+                  {e.startISO && <span style={{ color: 'var(--text-2)' }}>{fmtDate(e.startISO)} → </span>}
+                  <span style={{ color: 'var(--text)', fontWeight: 500 }}>{fmtDate(e.endISO)}</span>
+                </div>
+                {(e.cost || e.note || e.serviceKm) && <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {e.serviceKm && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmtInt(e.serviceKm)} km</span>}
+                  {e.serviceKm && (e.cost || e.note) && <span style={{ color: 'var(--text-dim)' }}>·</span>}
+                  {e.cost && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(e.cost, 2)} ₺</span>}
+                  {e.cost && e.note && <span style={{ color: 'var(--text-dim)' }}>·</span>}
+                  {e.note && <span style={{ fontStyle: 'italic' }}>{e.note}</span>}
+                </div>}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className={`remaining ${b.cls}`}>{b.label}</span>
+              <button className="btn-icon" onClick={() => onEditEvent(e)}><Icon.Pencil /></button>
+              <button className="btn-icon" onClick={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}><Icon.Trash /></button>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className={`remaining ${b.cls}`}>{b.label}</span>
-            <button className="btn-icon" onClick={() => onEditEvent(e)}><Icon.Pencil /></button>
-            <button className="btn-icon" onClick={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}><Icon.Trash /></button>
-          </div>
+          {progressPct !== null && (
+            <div style={{ height: 4, background: 'var(--border)', borderRadius: 99, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${progressPct}%`, background: barColor, borderRadius: 99, transition: 'width 0.4s ease' }} />
+            </div>
+          )}
         </div>
       </SwipeableEntry>
     );
@@ -1487,7 +1719,7 @@ function KmReminderFormModal({ open, editing, onClose }) {
 }
 
 /* ── Ayarlar ───────────────────────────────────────────── */
-function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmReminder, onEditKmReminder }) {
+function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmReminder, onEditKmReminder, onOpenExport }) {
   const store = useStore();
   const confirm = useConfirm();
   const importRef = useRef(null);
@@ -1625,12 +1857,9 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
 
       <div className="section-title"><h3>Veriler</h3></div>
       <div className="row-list">
-        <div className="row" style={{ cursor: 'pointer' }} onClick={() => {
-          const blob = new Blob([JSON.stringify({ entries: store.entries, events: store.events || [], prefs: store.prefs || {} }, null, 2)], { type: 'application/json' });
-          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `vitesse-${todayISO()}.json`; a.click(); URL.revokeObjectURL(a.href);
-        }}>
+        <div className="row" style={{ cursor: 'pointer' }} onClick={onOpenExport}>
           <div className="icon"><Icon.Sparkle s={16} /></div>
-          <div className="meta"><h5>Dışa Aktar</h5><p>Tüm veriler ve araç bilgileri JSON olarak kaydedilir</p></div>
+          <div className="meta"><h5>Dışa Aktar</h5><p>Excel veya JSON olarak kaydet</p></div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
         </div>
         <div className="row" style={{ cursor: 'pointer' }} onClick={() => importRef.current?.click()}>
@@ -2234,6 +2463,8 @@ function App() {
   const [kmPrompt, setKmPrompt] = useState({ open: false, km: 0 });
   const [kmReminderForm, setKmReminderForm] = useState({ open: false, editing: null });
   const [lpgOpen, setLpgOpen] = useState(false);
+  const [nearbyOpen, setNearbyOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   return (
     <ThemeCtx.Provider value={effectiveTheme}><LangCtx.Provider value={lang}><StoreProvider><NotificationChecker /><ConfirmProvider>
@@ -2242,10 +2473,10 @@ function App() {
           <div className="app">
             <div className="app-content">
               <div key={screen} className="screen-transition">
-                {screen === 'ozet' && <OzetScreen />}
+                {screen === 'ozet' && <OzetScreen onOpenNearby={() => setNearbyOpen(true)} />}
                 {screen === 'gecmis' && <GecmisScreen onEdit={(e) => setEntrySheet({ open: true, editing: e })} onOpenLpg={() => setLpgOpen(true)} />}
                 {screen === 'takvim' && <TakvimScreen onAddEvent={() => setEventSheet({ open: true, editing: null })} onEditEvent={(e) => setEventSheet({ open: true, editing: e })} />}
-                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onGizlilik={() => setScreen('gizlilik')} onAddKmReminder={() => setKmReminderForm({ open: true, editing: null })} onEditKmReminder={(r) => setKmReminderForm({ open: true, editing: r })} />}
+                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onGizlilik={() => setScreen('gizlilik')} onAddKmReminder={() => setKmReminderForm({ open: true, editing: null })} onEditKmReminder={(r) => setKmReminderForm({ open: true, editing: r })} onOpenExport={() => setExportOpen(true)} />}
                 {screen === 'gizlilik' && <GizlilikScreen onBack={() => setScreen('ayarlar')} />}
               </div>
             </div>
@@ -2262,6 +2493,8 @@ function App() {
           {kmPrompt.open && <KmPromptModal km={kmPrompt.km} onClose={() => setKmPrompt({ open: false, km: 0 })} />}
           <KmReminderFormModal open={kmReminderForm.open} editing={kmReminderForm.editing} onClose={() => setKmReminderForm({ open: false, editing: null })} />
           {lpgOpen && <LpgSheet onClose={() => setLpgOpen(false)} />}
+          {nearbyOpen && <NearbyStationsSheet onClose={() => setNearbyOpen(false)} />}
+          {exportOpen && <ExportSheet onClose={() => setExportOpen(false)} />}
         </div>
       </div>
     </ConfirmProvider></StoreProvider></LangCtx.Provider></ThemeCtx.Provider>);
