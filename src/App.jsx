@@ -2,6 +2,8 @@
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import * as XLSX from 'xlsx';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import './index.css';
 
 /* ── Empty State bileşeni ───────────────────────────────── */
@@ -870,89 +872,333 @@ function LpgSheet({ onClose }) {
 
 /* ── Özet ──────────────────────────────────────────────── */
 /* ── Yakındaki İstasyonlar ─────────────────────────────── */
+const makeStationIcon = (isSelected) => L.divIcon({
+  html: `<div style="width:${isSelected ? 32 : 26}px;height:${isSelected ? 32 : 26}px;background:${isSelected ? '#3b82f6' : '#6366f1'};border:${isSelected ? '3' : '2'}px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 ${isSelected ? '2px 8px rgba(59,130,246,0.5)' : '1px 4px rgba(0,0,0,0.3)'};font-size:${isSelected ? 14 : 12}px">⛽</div>`,
+  iconSize: [isSelected ? 32 : 26, isSelected ? 32 : 26],
+  iconAnchor: [isSelected ? 16 : 13, isSelected ? 16 : 13],
+  className: '',
+});
+
+const makeUserIcon = (heading) => {
+  const h = (heading !== null && heading !== undefined && !isNaN(heading)) ? heading : null;
+  return L.divIcon({
+    html: h !== null
+      ? `<svg width="36" height="36" viewBox="0 0 36 36" style="overflow:visible;transform:rotate(${h}deg)">
+          <path d="M18 3 L24 20 L18 17 L12 20 Z" fill="rgba(59,130,246,0.75)" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+          <circle cx="18" cy="18" r="8" fill="#3b82f6" stroke="white" stroke-width="2.5"/>
+        </svg>`
+      : `<div style="position:relative;width:22px;height:22px">
+          <div style="position:absolute;inset:0;background:rgba(59,130,246,0.3);border-radius:50%;animation:locatePulse 2s ease-out infinite"></div>
+          <div style="position:absolute;inset:5px;background:#3b82f6;border:2.5px solid #fff;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,0.4)"></div>
+        </div>`,
+    iconSize: h !== null ? [36, 36] : [22, 22],
+    iconAnchor: h !== null ? [18, 18] : [11, 11],
+    className: '',
+  });
+};
+
 function NearbyStationsSheet({ onClose }) {
-  const [status, setStatus] = useState('loading'); // loading | ok | error
+  const theme = useContext(ThemeCtx);
+  const [status, setStatus] = useState('loading');
   const [stations, setStations] = useState([]);
   const [userPos, setUserPos] = useState(null);
   const [errMsg, setErrMsg] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [route, setRoute] = useState(null);
+  const [mapTrigger, setMapTrigger] = useState(null);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerMapRef = useRef({});
+  const userMarkerRef = useRef(null);
+  const routeLayerRef = useRef(null);
+  const watchIdRef = useRef(null);
+  const headingRef = useRef(null);
+  const stationsFetchedRef = useRef(false);
+  const retryCountRef = useRef(0);
+
+  const addStationMarkers = (list, lat, lon) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    list.forEach(s => {
+      if (markerMapRef.current[s.id]) return;
+      const marker = L.marker([s.lat, s.lon], { icon: makeStationIcon(false) }).addTo(map);
+      marker.on('click', () => doSelect(s));
+      markerMapRef.current[s.id] = marker;
+    });
+    if (list.length > 0) {
+      const pts = [[lat, lon], ...list.slice(0, 8).map(s => [s.lat, s.lon])];
+      map.fitBounds(L.latLngBounds(pts), { padding: [48, 48], maxZoom: 15 });
+    }
+  };
+
+  const doFetch = (lat, lon) => {
+    if (stationsFetchedRef.current) return;
+    stationsFetchedRef.current = true;
+    const query = `[out:json][timeout:10];node[amenity=fuel](around:5000,${lat},${lon});out;`;
+    const endpoints = [
+      `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
+      `https://overpass.kumi.systems/api/interpreter?data=${encodeURIComponent(query)}`,
+    ];
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    (async () => {
+      for (const url of endpoints) {
+        try {
+          const r = await fetch(url, { signal: controller.signal });
+          const data = await r.json();
+          clearTimeout(timer);
+          const list = (data.elements || [])
+            .map(n => ({ id: n.id, lat: n.lat, lon: n.lon, name: n.tags?.name || n.tags?.brand || n.tags?.operator || 'Yakıt İstasyonu', dist: haversineKm(lat, lon, n.lat, n.lon) }))
+            .sort((a, b) => a.dist - b.dist).slice(0, 20);
+          retryCountRef.current = 0;
+          setStations(list);
+          setStatus('ok');
+          addStationMarkers(list, lat, lon);
+          return;
+        } catch (e) {
+          if (e.name === 'AbortError') break;
+        }
+      }
+      clearTimeout(timer);
+      if (retryCountRef.current < 2) {
+        retryCountRef.current++;
+        setTimeout(() => { stationsFetchedRef.current = false; }, 2000);
+      } else {
+        setStatus('error');
+        setErrMsg('İstasyonlar yüklenemedi. İnternet bağlantısını kontrol edin.');
+      }
+    })();
+  };
 
   useEffect(() => {
     if (!navigator.geolocation) { setStatus('error'); setErrMsg('Konum erişimi bu cihazda desteklenmiyor.'); return; }
+
+    // 1. Cache → anında harita + istasyon isteği
+    try {
+      const c = JSON.parse(localStorage.getItem('vitesse_lastPos') || 'null');
+      if (c?.lat && c?.lon) {
+        setUserPos(c);
+        setMapTrigger(c);
+        doFetch(c.lat, c.lon);
+      }
+    } catch {}
+
+    // 2. Hızlı düşük hassasiyetli konum (~500ms, WiFi/GSM)
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        const { latitude: lat, longitude: lon } = coords;
-        setUserPos({ lat, lon });
-        const query = `[out:json][timeout:10];node[amenity=fuel](around:5000,${lat},${lon});out;`;
-        fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`)
-          .then(r => r.json())
-          .then(data => {
-            const list = (data.elements || [])
-              .map(n => ({
-                id: n.id,
-                lat: n.lat,
-                lon: n.lon,
-                name: n.tags?.name || n.tags?.brand || n.tags?.operator || 'Yakıt İstasyonu',
-                brand: n.tags?.brand || null,
-                dist: haversineKm(lat, lon, n.lat, n.lon),
-              }))
-              .sort((a, b) => a.dist - b.dist)
-              .slice(0, 20);
-            setStations(list);
-            setStatus('ok');
-          })
-          .catch(() => { setStatus('error'); setErrMsg('İstasyonlar yüklenemedi. İnternet bağlantısını kontrol edin.'); });
+      ({ coords: { latitude: lat, longitude: lon } }) => {
+        const pos = { lat, lon };
+        localStorage.setItem('vitesse_lastPos', JSON.stringify(pos));
+        setUserPos(pos);
+        setMapTrigger(t => t || pos);
+        userMarkerRef.current?.setLatLng([lat, lon]);
+        doFetch(lat, lon);
       },
-      () => { setStatus('error'); setErrMsg('Konum alınamadı. Lütfen konum iznini kontrol edin.'); }
+      null,
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
     );
+
+    // 3. Yüksek hassasiyetli GPS (yön oku + hassas konum)
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      ({ coords: { latitude: lat, longitude: lon, heading } }) => {
+        const pos = { lat, lon };
+        localStorage.setItem('vitesse_lastPos', JSON.stringify(pos));
+        if (heading !== null && !isNaN(heading)) {
+          headingRef.current = heading;
+          userMarkerRef.current?.setIcon(makeUserIcon(heading));
+        }
+        setUserPos(pos);
+        setMapTrigger(t => t || pos);
+        userMarkerRef.current?.setLatLng([lat, lon]);
+        doFetch(lat, lon);
+      },
+      () => { if (!stationsFetchedRef.current) { setStatus('error'); setErrMsg('Konum alınamadı. Lütfen konum iznini kontrol edin.'); } },
+      { enableHighAccuracy: true }
+    );
+
+    const handleOrientation = (e) => {
+      const hdg = e.webkitCompassHeading ?? (e.alpha !== null ? (360 - e.alpha) % 360 : null);
+      if (hdg !== null) {
+        headingRef.current = hdg;
+        userMarkerRef.current?.setIcon(makeUserIcon(hdg));
+      }
+    };
+    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+    window.addEventListener('deviceorientation', handleOrientation, true);
+
+    return () => {
+      if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+      window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
+      window.removeEventListener('deviceorientation', handleOrientation, true);
+    };
   }, []);
 
-  const navigate = (s) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}&travelmode=driving`;
-    window.open(url, '_blank', 'noopener');
+  // Harita: mapTrigger set olduğu anda (cache veya GPS) bir kez başlatılır
+  useEffect(() => {
+    if (!mapRef.current || !mapTrigger || mapInstanceRef.current) return;
+
+    const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false })
+      .setView([mapTrigger.lat, mapTrigger.lon], 14);
+    L.tileLayer(
+      theme === 'dark'
+        ? 'https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=u6PrguMf5GX90KpQ2zCR'
+        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      { maxZoom: 19 }
+    ).addTo(map);
+
+    const userMarker = L.marker([mapTrigger.lat, mapTrigger.lon], { icon: makeUserIcon(headingRef.current), zIndexOffset: 500 }).addTo(map);
+    userMarkerRef.current = userMarker;
+    mapInstanceRef.current = map;
+    setTimeout(() => map.invalidateSize(), 150);
+
+    return () => { map.remove(); mapInstanceRef.current = null; markerMapRef.current = {}; userMarkerRef.current = null; };
+  }, [mapTrigger, theme]);
+
+  const clearRouteLayer = () => {
+    if (routeLayerRef.current && mapInstanceRef.current) {
+      mapInstanceRef.current.removeLayer(routeLayerRef.current);
+      routeLayerRef.current = null;
+    }
   };
+
+  const doSelect = (s) => {
+    Object.values(markerMapRef.current).forEach(m => m.setIcon(makeStationIcon(false)));
+    markerMapRef.current[s.id]?.setIcon(makeStationIcon(true));
+    clearRouteLayer();
+    setRoute(null);
+    setSelected(s);
+    mapInstanceRef.current?.panTo([s.lat, s.lon]);
+  };
+
+  const drawRoute = (s) => {
+    if (!userPos || !mapInstanceRef.current) return;
+    setRoute('loading');
+    fetch(`https://router.project-osrm.org/route/v1/driving/${userPos.lon},${userPos.lat};${s.lon},${s.lat}?overview=full&geometries=geojson`)
+      .then(r => r.json())
+      .then(data => {
+        const leg = data.routes?.[0];
+        if (!leg) { setRoute('error'); return; }
+        clearRouteLayer();
+        const outline = L.geoJSON(leg.geometry, { style: { color: '#fff', weight: 9, opacity: 0.55, lineJoin: 'round', lineCap: 'round' } });
+        const line   = L.geoJSON(leg.geometry, { style: { color: '#3b82f6', weight: 5, opacity: 1, lineJoin: 'round', lineCap: 'round' } });
+        const group = L.layerGroup([outline, line]).addTo(mapInstanceRef.current);
+        routeLayerRef.current = group;
+        mapInstanceRef.current.fitBounds(line.getBounds(), { padding: [48, 48] });
+        setRoute({ distKm: leg.distance / 1000, durationMin: Math.round(leg.duration / 60) });
+      })
+      .catch(() => setRoute('error'));
+  };
+
+  const clearRoute = () => { clearRouteLayer(); setRoute(null); };
+  const distLabel = (s) => s.dist < 1 ? `${Math.round(s.dist * 1000)} m` : `${s.dist.toFixed(1)} km`;
+
+  const mapBtnStyle = { position: 'absolute', zIndex: 999, width: 40, height: 40, borderRadius: 10, background: 'var(--bg-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxHeight: '80%' }}>
-        <div className="modal-handle" />
-        <div className="modal-head">
-          <h2>Yakındaki İstasyonlar</h2>
-          <button className="btn-icon" onClick={onClose}><Icon.X /></button>
-        </div>
-        {status === 'loading' && (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-2)', fontSize: 14 }}>
-            Konum ve istasyonlar yükleniyor…
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', height: '92%', background: 'var(--bg-2)', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 46, borderBottomRightRadius: 46, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        <div style={{ padding: '14px 20px 10px', flexShrink: 0 }}>
+          <div style={{ width: 38, height: 4, background: 'var(--text-dim)', borderRadius: 2, margin: '0 auto 12px' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Yakındaki İstasyonlar</h2>
+              {status === 'ok' && <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 1 }}>{stations.length} istasyon · 5 km içinde</div>}
+            </div>
+            <button className="btn-icon" onClick={onClose}><Icon.X /></button>
           </div>
-        )}
-        {status === 'error' && (
-          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--negative)', fontSize: 14 }}>{errMsg}</div>
-        )}
-        {status === 'ok' && stations.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-2)', fontSize: 14 }}>5 km çevresinde istasyon bulunamadı.</div>
-        )}
-        {status === 'ok' && stations.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-            {stations.map(s => (
-              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--bg-2)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon.Fuel s={17} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 400, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 1 }}>{s.dist < 1 ? `${Math.round(s.dist * 1000)} m` : `${s.dist.toFixed(1)} km`}</div>
-                </div>
-                <button
-                  className="btn btn-accent"
-                  style={{ padding: '7px 13px', fontSize: 13, flexShrink: 0 }}
-                  onClick={() => navigate(s)}
-                >
-                  Yol Tarifi
+        </div>
+
+        <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+          {status === 'loading' && !mapTrigger && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-2)', fontSize: 14, background: 'var(--bg)' }}>
+              Konum alınıyor…
+            </div>
+          )}
+          {status === 'loading' && mapTrigger && (
+            <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 999, background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: 'var(--text-2)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', whiteSpace: 'nowrap' }}>
+              İstasyonlar yükleniyor…
+            </div>
+          )}
+          {status === 'error' && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '0 32px', textAlign: 'center', background: 'var(--bg)' }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span style={{ fontSize: 14, color: 'var(--negative)' }}>{errMsg}</span>
+              <button className="btn btn-accent" style={{ fontSize: 13, padding: '9px 20px' }} onClick={() => { retryCountRef.current = 0; stationsFetchedRef.current = false; setStatus('loading'); setErrMsg(''); }}>Tekrar Dene</button>
+            </div>
+          )}
+          <div ref={mapRef} className={theme === 'dark' ? 'map-dark' : ''} style={{ width: '100%', height: '100%' }} />
+
+          {mapTrigger && (
+            <>
+              {/* Zoom butonları */}
+              <div style={{ position: 'absolute', right: 12, bottom: 12, zIndex: 999, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button style={mapBtnStyle} onClick={() => mapInstanceRef.current?.zoomIn()}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+                <button style={mapBtnStyle} onClick={() => mapInstanceRef.current?.zoomOut()}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </button>
               </div>
-            ))}
+              {/* Konumuma Dön */}
+              <button style={{ ...mapBtnStyle, bottom: 12, left: 12 }} onClick={() => mapInstanceRef.current?.setView([userPos.lat, userPos.lon], 15)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+              </button>
+            </>
+          )}
+        </div>
+
+        {status === 'ok' && stations.length > 0 && (
+          <div style={{ flexShrink: 0, display: 'flex', gap: 8, overflowX: 'auto', padding: '10px 16px', scrollbarWidth: 'none' }}>
+            {stations.map(s => {
+              const sel = selected?.id === s.id;
+              return (
+                <button key={s.id} onClick={() => doSelect(s)}
+                  style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, padding: '8px 13px', background: sel ? '#3b82f6' : 'var(--surface)', border: `1.5px solid ${sel ? '#3b82f6' : 'var(--border)'}`, borderRadius: 12, color: sel ? '#fff' : 'var(--text)', cursor: 'pointer', transition: 'all 0.15s', boxShadow: sel ? '0 2px 8px rgba(59,130,246,0.35)' : 'none' }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap' }}>⛽ {s.name}</span>
+                  <span style={{ fontSize: 11, opacity: 0.72, whiteSpace: 'nowrap' }}>{distLabel(s)}</span>
+                </button>
+              );
+            })}
           </div>
         )}
-        <div style={{ height: 8 }} />
+
+        {selected && (
+          <div style={{ flexShrink: 0, padding: '12px 18px 18px', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: route && route !== 'loading' && route !== 'error' ? 10 : 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(59,130,246,0.12)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon.Fuel s={17} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 1 }}>
+                  {route && route !== 'loading' && route !== 'error'
+                    ? `${route.distKm.toFixed(1)} km · ~${route.durationMin} dk`
+                    : 'Yol tarifi almak için butona bas'}
+                </div>
+              </div>
+              {route === 'loading'
+                ? <span style={{ fontSize: 12, color: 'var(--text-2)', flexShrink: 0 }}>Hesaplanıyor…</span>
+                : route === 'error'
+                ? <button className="btn btn-accent" style={{ padding: '8px 13px', fontSize: 13, flexShrink: 0 }} onClick={() => drawRoute(selected)}>Tekrar Dene</button>
+                : route
+                ? <button style={{ padding: '7px 12px', fontSize: 12, flexShrink: 0, background: 'none', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-2)', cursor: 'pointer' }} onClick={clearRoute}>Rotayı Kapat</button>
+                : <button className="btn btn-accent" style={{ padding: '8px 14px', fontSize: 13, flexShrink: 0 }} onClick={() => drawRoute(selected)}>Yol Tarifi</button>
+              }
+            </div>
+            {route && route !== 'loading' && route !== 'error' && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1, padding: '9px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 2 }}>Mesafe</div>
+                  <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{route.distKm.toFixed(1)} km</div>
+                </div>
+                <div style={{ flex: 1, padding: '9px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 2 }}>Tahmini Süre</div>
+                  <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{route.durationMin} dk</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1308,20 +1554,25 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
   }, [store.entries]);
 
   const stationStats = useMemo(() => {
-    const d3m = new Date();
-    d3m.setMonth(d3m.getMonth() - 3);
-    const cutoff = d3m.toISOString().slice(0, 10);
-    const map = {};
-    store.entries.filter((e) => e.dateISO >= cutoff).forEach((e) => {
-      if (!e.station) return;
-      if (!map[e.station]) map[e.station] = { total: 0, liters: 0, count: 0 };
-      map[e.station].total += e.liters * e.pricePerL;
-      map[e.station].liters += e.liters;
-      map[e.station].count += 1;
-    });
-    return Object.entries(map)
-      .map(([name, s]) => ({ name, avg: s.liters > 0 ? s.total / s.liters : 0, count: s.count }))
-      .sort((a, b) => a.avg - b.avg);
+    const now = new Date();
+    const d3 = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+    const cutoff = `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, '0')}-${String(d3.getDate()).padStart(2, '0')}`;
+    const buildStats = (entries) => {
+      const map = {};
+      entries.forEach((e) => {
+        if (!e.station) return;
+        if (!map[e.station]) map[e.station] = { total: 0, liters: 0, count: 0 };
+        map[e.station].total += e.liters * e.pricePerL;
+        map[e.station].liters += e.liters;
+        map[e.station].count += 1;
+      });
+      return Object.entries(map)
+        .map(([name, s]) => ({ name, avg: s.liters > 0 ? s.total / s.liters : 0, count: s.count }))
+        .sort((a, b) => a.avg - b.avg);
+    };
+    const recent = buildStats(store.entries.filter(e => e.dateISO >= cutoff));
+    if (recent.length >= 1) return { stats: recent, label: 'Son 3 ay' };
+    return null;
   }, [store.entries]);
 
   const timePills = [
@@ -1378,12 +1629,12 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
         </>
       )}
 
-      {stationStats.length >= 2 && (
+      {stationStats !== null && (
         <>
           <div className="section-title">
             <h3>İstasyon Karşılaştırması</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span className="meta">Son 3 ay</span>
+              <span className="meta">{stationStats.label}</span>
               <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
                 <button onClick={() => setStationInfoOpen(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -1396,7 +1647,7 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
             </div>
           </div>
           <div style={{ margin: '0 18px 8px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-            {stationStats.map((s, i) => (
+            {stationStats.stats.map((s, i) => (
               <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   {i === 0 && <span style={{ fontSize: 10, background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 5, padding: '1px 5px', fontWeight: 600, letterSpacing: '0.02em' }}>UCUZ</span>}
