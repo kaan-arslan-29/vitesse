@@ -1373,31 +1373,13 @@ function OzetScreen({ onOpenNearby }) {
         </div>
       </div>
 
-      <div style={{ margin: '10px 18px 0', display: 'flex', gap: 8 }}>
-        <button
-          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', color: 'var(--text)', fontSize: 13 }}
-          onClick={() => {
-            if (!navigator.geolocation) { alert('Konum erişimi desteklenmiyor.'); return; }
-            navigator.geolocation.getCurrentPosition(
-              ({ coords }) => {
-                const url = `https://www.google.com/maps/search/akaryak%C4%B1t+istasyonu/@${coords.latitude},${coords.longitude},15z`;
-                window.open(url, '_blank', 'noopener');
-              },
-              () => alert('Konum alınamadı. Lütfen konum iznini kontrol edin.')
-            );
-          }}
-        >
-          <Icon.MapPin s={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-          Google Maps
-        </button>
-        <button
-          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', color: 'var(--text)', fontSize: 13 }}
-          onClick={onOpenNearby}
-        >
-          <Icon.Fuel s={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-          Uygulama İçi
-        </button>
-      </div>
+      <button
+        style={{ margin: '10px 18px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', color: 'var(--text)', fontSize: 13, width: 'calc(100% - 36px)' }}
+        onClick={onOpenNearby}
+      >
+        <Icon.MapPin s={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+        Yakındaki İstasyonlar
+      </button>
 
       {consPts.length >= 2 &&
       <>
