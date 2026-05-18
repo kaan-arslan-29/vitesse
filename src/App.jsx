@@ -16,27 +16,8 @@ function EmptyState({ icon, title, sub, action, onAction }) {
 }
 
 /* ── Count-up animasyonu ────────────────────────────────── */
-function useCountUp(target, duration = 600) {
-  const [value, setValue] = useState(0);
-  const prev = useRef(0);
-  useEffect(() => {
-    if (target === null || isNaN(target)) { setValue(target); return; }
-    const from = prev.current;
-    prev.current = target;
-    if (from === target) return;
-    const start = performance.now();
-    let raf;
-    const tick = (now) => {
-      const t = Math.min((now - start) / duration, 1);
-      const ease = 1 - Math.pow(1 - t, 3);
-      setValue(from + (target - from) * ease);
-      if (t < 1) raf = requestAnimationFrame(tick);
-      else setValue(target);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target]);
-  return value;
+function useCountUp(target) {
+  return target ?? 0;
 }
 
 /* ── Icons ─────────────────────────────────────────────── */
@@ -223,7 +204,7 @@ const fmtInt = (n) => {
 };
 const APP_VERSION = 'v16';
 const uid = () => Math.random().toString(36).slice(2, 10);
-const parseISO = (s) => {if (!s) return null;const [y, m, d] = s.split('-').map(Number);return new Date(y, m - 1, d);};
+const parseISO = (s) => {if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;const [y, m, d] = s.split('-').map(Number);return new Date(y, m - 1, d);};
 const fmtDate = (s) => {const d = parseISO(s);if (!d) return '';return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;};
 const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 const TR_MONTHS_FULL = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -328,7 +309,7 @@ function ConfirmProvider({ children }) {
         <div className="modal-overlay alert" onClick={close}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: modalBg, border: modalBorder, borderRadius: 22, padding: '26px 22px 22px', width: '100%', textAlign: 'center', boxShadow: dark ? '0 8px 40px rgba(0,0,0,0.5)' : '0 8px 40px rgba(0,0,0,0.12)' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <Icon.Trash s={24} color={iconColor} />
+              <Icon.Trash s={24} />
             </div>
             <h2 style={{ marginBottom: 8, color: titleColor }}>Emin misin?</h2>
             <p style={{ fontSize: 14, color: msgColor, lineHeight: 1.6, margin: '0 0 22px' }}>{state.message}</p>
@@ -551,6 +532,127 @@ function GiderDagilimi() {
   );
 }
 
+/* ── Aylık Bar Grafik ──────────────────────────────────── */
+function AylikBarChart() {
+  const store = useStore();
+  const [mode, setMode] = useState('₺');
+  const [active, setActive] = useState(null);
+  const currentYear = useMemo(() => new Date().getFullYear().toString(), []);
+  const [year, setYear] = useState(currentYear);
+
+  const years = useMemo(() => {
+    const ys = new Set([currentYear]);
+    store.entries.forEach(e => ys.add(e.dateISO.slice(0, 4)));
+    return [...ys].sort((a, b) => b.localeCompare(a));
+  }, [store.entries, currentYear]);
+
+  const monthData = useMemo(() => (
+    Array.from({ length: 12 }, (_, i) => {
+      const key = `${year}-${String(i + 1).padStart(2, '0')}`;
+      const es = store.entries.filter(e => e.dateISO.startsWith(key));
+      return {
+        liters: es.reduce((s, e) => s + e.liters, 0),
+        spend: es.reduce((s, e) => s + e.liters * e.pricePerL, 0),
+      };
+    })
+  ), [store.entries, year]);
+
+  const values = monthData.map(d => mode === 'L' ? d.liters : d.spend);
+  const hasAny = values.some(v => v > 0);
+  if (!hasAny) return null;
+
+  const W = 320, H = 148;
+  const pad = { t: 12, r: 10, b: 26, l: 38 };
+  const cW = W - pad.l - pad.r;
+  const cH = H - pad.t - pad.b;
+  const slot = cW / 12;
+  const barW = Math.max(6, Math.floor(slot * 0.68));
+
+  const maxVal = Math.max(...values);
+  const rawStep = maxVal / 4;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep || 1)));
+  const step = [1, 2, 2.5, 5, 10].map(f => f * mag).find(s => s >= rawStep) ?? mag * 10;
+  const gridMax = Math.ceil(maxVal / step) * step;
+  const gridLines = [1, 0.75, 0.5, 0.25].map(frac => ({
+    val: gridMax * frac,
+    y: pad.t + (1 - frac) * cH,
+  }));
+
+  return (
+    <div className="chart-card" style={{ marginBottom: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ display: 'flex', gap: 3 }}>
+          {['₺', 'L'].map(m => (
+            <button key={m} onClick={() => { setMode(m); setActive(null); }}
+              className={`chip-btn${mode === m ? ' active' : ''}`}
+              style={{ padding: '3px 10px', fontSize: 12 }}>{m}</button>
+          ))}
+        </div>
+        <select value={year} onChange={e => { setYear(e.target.value); setActive(null); }}
+          style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 8px', fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-sans)', cursor: 'pointer', outline: 'none' }}>
+          {years.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', display: 'block' }} onClick={() => setActive(null)}>
+        <line x1={pad.l} y1={pad.t + cH} x2={W - pad.r} y2={pad.t + cH} stroke="var(--border)" strokeWidth="1" />
+        {gridLines.map(({ val, y }, i) => (
+          <g key={i}>
+            <line x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray="3 5" strokeOpacity="0.7" />
+            <text x={pad.l - 4} y={y + 3.5} fontSize="9" textAnchor="end" fill="var(--color-chart-axis)" fontFamily="Geist Mono, monospace">
+              {mode === '₺' && val >= 1000 ? `${Math.round(val / 1000)}k` : Math.round(val)}
+            </text>
+          </g>
+        ))}
+        {monthData.map((d, i) => {
+          const val = mode === 'L' ? d.liters : d.spend;
+          const barH = gridMax > 0 ? Math.max(0, (val / gridMax) * cH) : 0;
+          const x = pad.l + i * slot + (slot - barW) / 2;
+          const y = pad.t + cH - barH;
+          const isActive = active === i;
+          const hasVal = val > 0;
+          return (
+            <g key={i} style={{ cursor: hasVal ? 'pointer' : 'default' }}
+              onClick={ev => { if (!hasVal) return; ev.stopPropagation(); setActive(active === i ? null : i); }}>
+              {hasVal ? (
+                <rect x={x} y={y} width={barW} height={barH}
+                  rx={Math.min(3, barW / 3)}
+                  fill="var(--accent)" opacity={isActive ? 1 : 0.55}
+                  style={{ transition: 'opacity 0.15s' }}
+                />
+              ) : (
+                <rect x={x} y={pad.t + cH - 2} width={barW} height={2} rx="1" fill="var(--border)" opacity="0.4" />
+              )}
+              <text x={x + barW / 2} y={H - 5} fontSize="9" textAnchor="middle"
+                fill={isActive ? 'var(--accent)' : 'var(--color-chart-axis)'}
+                fontFamily="Geist, sans-serif" fontWeight={isActive ? '600' : '400'}>
+                {TR_MONTHS[i]}
+              </text>
+              {isActive && hasVal && (() => {
+                const ttW = mode === '₺' ? 88 : 68;
+                const ttH = 34;
+                const tx = Math.min(Math.max(x + barW / 2 - ttW / 2, pad.l), W - pad.r - ttW);
+                const ty = Math.max(y - ttH - 6, pad.t);
+                return (
+                  <g>
+                    <rect x={tx} y={ty} width={ttW} height={ttH} rx="7"
+                      fill="var(--surface-2)" stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.4" />
+                    <text x={tx + ttW / 2} y={ty + 13} fontSize="11" textAnchor="middle"
+                      fill="var(--text-2)" fontFamily="Geist, sans-serif">{TR_MONTHS_FULL[i]}</text>
+                    <text x={tx + ttW / 2} y={ty + 27} fontSize="12" fontWeight="600" textAnchor="middle"
+                      fill="var(--accent)" fontFamily="Geist Mono, monospace">
+                      {mode === 'L' ? `${fmt(val, 1)} L` : `${fmtInt(Math.round(val))} ₺`}
+                    </text>
+                  </g>
+                );
+              })()}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 /* ── LPG Hesaplama ─────────────────────────────────────── */
 function LpgSheet({ onClose }) {
   const store = useStore();
@@ -599,7 +701,7 @@ function LpgSheet({ onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
             <div className="label" style={{ margin: 0 }}>Aylık tüketim</div>
             <div style={{ display: 'flex', gap: 4 }}>
-              {['L', '₺'].map(b => (
+              {['₺', 'L'].map(b => (
                 <button key={b} onClick={() => setTuketimBirim(b)}
                   className={`chip-btn${tuketimBirim === b ? ' active' : ''}`}
                   style={{ padding: '3px 10px', fontSize: 12 }}>{b}</button>
@@ -746,10 +848,6 @@ function OzetScreen() {
 
   return (
     <div>
-      <div className="app-header">
-        <div className="brand-name">Vitesse</div>
-      </div>
-
       <div className="title-row">
         <div className="title-block">
           <h1>Özet</h1>
@@ -1017,16 +1115,13 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
 
   return (
     <div>
-      <div className="app-header">
-        <div className="brand-name">Vitesse</div>
-      </div>
-      <div style={{ padding: '12px 18px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ padding: '20px 18px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div className="title-block" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
             <h1>Geçmiş</h1>
             <div className="sub">{filtered.length} dolum kaydı</div>
           </div>
-          {store.entries.length >= 2 && (
+          {store.entries.length >= 2 && (store.prefs?.fuelType || 'Benzin') === 'Benzin' && (
             <button className="btn-accent" style={{ marginTop: 4 }} onClick={onOpenLpg}>LPG Hesabı</button>
           )}
         </div>
@@ -1055,6 +1150,15 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
           </div>
         </>
       }
+
+      {store.entries.length > 0 && (
+        <>
+          <div className="section-title">
+            <h3>Aylık Tüketim</h3>
+          </div>
+          <AylikBarChart />
+        </>
+      )}
 
       {stationStats.length >= 2 && (
         <>
@@ -1200,40 +1304,39 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
     const isWarn = !isExpired && e.days <= 30;
     const isOk = !isExpired && !isWarn;
     return (
-      <div className={`upcoming-row${isExpired ? ' expired' : ''}`} key={e.id}>
-        <div className="left">
-          <div className="iconbox">
-            {typeIcon(e.type)}
-          </div>
-          <div>
-            <div className="name">{e.type}</div>
-            <div className="date">
-              {e.startISO && <span style={{ color: 'var(--text-2)' }}>{fmtDate(e.startISO)} → </span>}
-              <span style={{ color: 'var(--text)', fontWeight: 500 }}>{fmtDate(e.endISO)}</span>
+      <SwipeableEntry key={e.id} onDelete={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}>
+        <div className={`upcoming-row${isExpired ? ' expired' : ''}`}>
+          <div className="left">
+            <div className="iconbox">
+              {typeIcon(e.type)}
             </div>
-            {(e.cost || e.note || e.serviceKm) && <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {e.serviceKm && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmtInt(e.serviceKm)} km</span>}
-              {e.serviceKm && (e.cost || e.note) && <span style={{ color: 'var(--text-dim)' }}>·</span>}
-              {e.cost && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(e.cost, 2)} ₺</span>}
-              {e.cost && e.note && <span style={{ color: 'var(--text-dim)' }}>·</span>}
-              {e.note && <span style={{ fontStyle: 'italic' }}>{e.note}</span>}
-            </div>}
+            <div>
+              <div className="name">{e.type}</div>
+              <div className="date">
+                {e.startISO && <span style={{ color: 'var(--text-2)' }}>{fmtDate(e.startISO)} → </span>}
+                <span style={{ color: 'var(--text)', fontWeight: 500 }}>{fmtDate(e.endISO)}</span>
+              </div>
+              {(e.cost || e.note || e.serviceKm) && <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {e.serviceKm && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmtInt(e.serviceKm)} km</span>}
+                {e.serviceKm && (e.cost || e.note) && <span style={{ color: 'var(--text-dim)' }}>·</span>}
+                {e.cost && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(e.cost, 2)} ₺</span>}
+                {e.cost && e.note && <span style={{ color: 'var(--text-dim)' }}>·</span>}
+                {e.note && <span style={{ fontStyle: 'italic' }}>{e.note}</span>}
+              </div>}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className={`remaining ${b.cls}`}>{b.label}</span>
+            <button className="btn-icon" onClick={() => onEditEvent(e)}><Icon.Pencil /></button>
+            <button className="btn-icon" onClick={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}><Icon.Trash /></button>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span className={`remaining ${b.cls}`}>{b.label}</span>
-          <button className="btn-icon" onClick={() => onEditEvent(e)}><Icon.Pencil /></button>
-          <button className="btn-icon" onClick={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}><Icon.Trash /></button>
-        </div>
-      </div>
+      </SwipeableEntry>
     );
   };
 
   return (
     <div>
-      <div className="app-header">
-        <div className="brand-name">Vitesse</div>
-      </div>
       <div className="title-row">
         <div className="title-block">
           <h1>Takvim</h1>
@@ -1423,9 +1526,6 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
 
   return (
     <div>
-      <div className="app-header">
-        <div className="brand-name">Vitesse</div>
-      </div>
       <div className="title-row">
         <div className="title-block">
           <h1>Ayarlar</h1>
@@ -1995,9 +2095,9 @@ function SwipeableEntry({ children, onDelete }) {
         <div style={{ flex: '0 0 100%', minWidth: 0 }}>
           {children}
         </div>
-        <div style={{ flex: `0 0 ${DELETE_W}px`, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        <div style={{ flex: `0 0 ${DELETE_W}px`, background: '#ef4444', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           onClick={(e) => { e.stopPropagation(); onDelete(); }}>
-          <Icon.Trash s={20} color="#fff" />
+          <Icon.Trash s={20} />
         </div>
       </div>
     </div>
@@ -2059,7 +2159,7 @@ function NotificationChecker() {
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
       const KEY = 'yakit-notified';
-      const notified = JSON.parse(localStorage.getItem(KEY) || '{}');
+      const notified = (() => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { return {}; } })();
       const shownToday = !!notified[todayStr];
       const futureNotifs = [];
       const immediateNotifs = [];
@@ -2103,7 +2203,7 @@ function NotificationChecker() {
       }
     };
     run().catch(() => {});
-  }, [store.events, store.prefs?.bildirimler, store.prefs?.kmReminders, store.entries]);
+  }, [store.events, store.entries, store.prefs]);
   return null;
 }
 
