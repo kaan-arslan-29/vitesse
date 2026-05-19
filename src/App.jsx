@@ -177,7 +177,12 @@ const Icon = {
   <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 10c0 6-8 13-8 13s-8-7-8-13a8 8 0 0 1 16 0Z" />
       <circle cx="12" cy="10" r="3" />
-    </svg>
+    </svg>,
+
+  Star: ({ s = 20 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>,
 
 };
 
@@ -1176,14 +1181,22 @@ function NearbyStationsSheet({ onClose }) {
                     : 'Yol tarifi almak için butona bas'}
                 </div>
               </div>
-              {route === 'loading'
-                ? <span style={{ fontSize: 12, color: 'var(--text-2)', flexShrink: 0 }}>Hesaplanıyor…</span>
-                : route === 'error'
-                ? <button className="btn btn-accent" style={{ padding: '8px 13px', fontSize: 13, flexShrink: 0 }} onClick={() => drawRoute(selected)}>Tekrar Dene</button>
-                : route
-                ? <button style={{ padding: '7px 12px', fontSize: 12, flexShrink: 0, background: 'none', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-2)', cursor: 'pointer' }} onClick={clearRoute}>Rotayı Kapat</button>
-                : <button className="btn btn-accent" style={{ padding: '8px 14px', fontSize: 13, flexShrink: 0 }} onClick={() => drawRoute(selected)}>Yol Tarifi</button>
-              }
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <button
+                  style={{ padding: '7px 10px', fontSize: 12, background: 'none', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+                  onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lon}&travelmode=driving`, '_blank', 'noopener')}
+                >
+                  <Icon.MapPin s={13} /> Maps
+                </button>
+                {route === 'loading'
+                  ? <span style={{ fontSize: 12, color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>Hesaplanıyor…</span>
+                  : route === 'error'
+                  ? <button className="btn btn-accent" style={{ padding: '8px 13px', fontSize: 13 }} onClick={() => drawRoute(selected)}>Tekrar Dene</button>
+                  : route
+                  ? <button style={{ padding: '7px 12px', fontSize: 12, background: 'none', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-2)', cursor: 'pointer' }} onClick={clearRoute}>Rotayı Kapat</button>
+                  : <button className="btn btn-accent" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => drawRoute(selected)}>Yol Tarifi</button>
+                }
+              </div>
             </div>
             {route && route !== 'loading' && route !== 'error' && (
               <div style={{ display: 'flex', gap: 8 }}>
@@ -1208,6 +1221,7 @@ function OzetScreen({ onOpenNearby }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const [consFilter, setConsFilter] = useState('all');
   const store = useStore();
+  const theme = useTheme();
   const myEntries = useMemo(() => [...store.entries].sort((a, b) => b.dateISO.localeCompare(a.dateISO)), [store.entries]);
   const consPts = useMemo(() => consumptionPoints(store.entries), [store.entries]);
   const avgCons = useMemo(() => averageConsumption(consPts), [consPts]);
@@ -1278,6 +1292,16 @@ function OzetScreen({ onOpenNearby }) {
   const combinedRows = Array.from({ length: Math.max(kmReminders.length, bakimEvents.length) }, (_, i) => ({ km: kmReminders[i] || null, ev: bakimEvents[i] || null }));
 
   const yearSpend = yearEntries.reduce((s, e) => s + e.liters * e.pricePerL, 0);
+  const monthlyAvg = useMemo(() => {
+    if (!store.entries.length) return null;
+    const byMonth = {};
+    store.entries.forEach(e => {
+      const m = e.dateISO.slice(0, 7);
+      byMonth[m] = (byMonth[m] || 0) + e.liters * e.pricePerL;
+    });
+    const vals = Object.values(byMonth);
+    return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+  }, [store.entries]);
   const animAvgCons = useCountUp(avgCons ?? 0);
   const animMonthSpend = useCountUp(thisMonthSpend);
   const animTlPerKm = useCountUp(tlPerKm ?? 0);
@@ -1290,8 +1314,8 @@ function OzetScreen({ onOpenNearby }) {
         <div className="title-block">
           <h1>Özet</h1>
           <div className="sub">
-            {(store.prefs?.vehicleName || store.prefs?.vehicleModel)
-              ? `${store.prefs.vehicleName || store.prefs.vehicleModel} · ${myEntries.length} dolum kaydı`
+            {store.prefs?.vehicleModel
+              ? `${store.prefs.vehicleModel} · ${myEntries.length} dolum kaydı`
               : `${myEntries.length} dolum kaydı`}
           </div>
         </div>
@@ -1308,21 +1332,29 @@ function OzetScreen({ onOpenNearby }) {
       ) : <>
 
       <div className="hero">
-        <div className="hero-top">
-          <span className="eyebrow">Ortalama Tüketim</span>
-        </div>
-        <div className="hero-big-row">
-          <span className="hero-big">{avgCons !== null ? fmt(animAvgCons, 1) : '—'}</span>
-          <span className="hero-unit">L/100km</span>
-<div style={{ position: 'relative', display: 'inline-flex', alignItems: 'flex-end', marginBottom: 3, marginLeft: 6 }}>
-            <button onClick={() => setInfoOpen(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            </button>
-            {infoOpen && <>
-              <div onClick={() => setInfoOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9 }} />
-              <div style={{ position: 'absolute', left: 0, top: 22, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10, transform: 'translateX(-30%)' }}>{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
-            </>}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <div>
+            <span className="eyebrow">Ortalama Tüketim</span>
+            <div className="hero-big-row">
+              <span className="hero-big">{avgCons !== null ? fmt(animAvgCons, 1) : '—'}</span>
+              <span className="hero-unit">L/100km</span>
+              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'flex-end', marginBottom: 3, marginLeft: 6 }}>
+                <button onClick={() => setInfoOpen(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </button>
+                {infoOpen && <>
+                  <div onClick={() => setInfoOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9 }} />
+                  <div style={{ position: 'absolute', left: 0, top: 22, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10, transform: 'translateX(-30%)' }}>{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
+                </>}
+              </div>
+            </div>
           </div>
+          <button onClick={onOpenNearby} style={{ flexShrink: 0, background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'var(--surface-2)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid var(--border)', cursor: 'pointer', padding: '10px 12px', color: 'var(--text)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, fontSize: 11, borderRadius: 16, fontWeight: 500, marginTop: 2 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 10px rgba(0,0,0,0.25)', color: 'var(--accent-ink)' }}>
+              <Icon.MapPin s={19} />
+            </div>
+            İstasyonlar
+          </button>
         </div>
 
         <div className="tank-row">
@@ -1369,17 +1401,9 @@ function OzetScreen({ onOpenNearby }) {
             <span className="icon"><Icon.Sparkle /></span>
           </div>
           <div className="value">{fmt(animYearSpend, 0)}<span className="u">₺</span></div>
-          <div className="sub">bu yıl · {fmt(yearEntries.reduce((s, e) => s + e.liters, 0), 1)} L</div>
+          <div className="sub">{monthlyAvg !== null ? `ort. ${fmt(monthlyAvg, 0)} ₺/ay` : `bu yıl · ${fmt(yearEntries.reduce((s, e) => s + e.liters, 0), 1)} L`}</div>
         </div>
       </div>
-
-      <button
-        style={{ margin: '10px 18px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', color: 'var(--text)', fontSize: 13, width: 'calc(100% - 36px)' }}
-        onClick={onOpenNearby}
-      >
-        <Icon.MapPin s={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-        Yakındaki İstasyonlar
-      </button>
 
       {consPts.length >= 2 &&
       <>
@@ -1570,7 +1594,6 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
         <div className="title-block" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
             <h1>Geçmiş</h1>
-            <div className="sub">{filtered.length} dolum kaydı</div>
           </div>
           {store.entries.length >= 2 && (store.prefs?.fuelType || 'Benzin') === 'Benzin' && (
             <button className="btn-accent" style={{ marginTop: 4 }} onClick={onOpenLpg}>LPG Hesabı</button>
@@ -1809,7 +1832,6 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
       <div className="title-row">
         <div className="title-block">
           <h1>Takvim</h1>
-          <div className="sub">{allEvents.length} etkinlik takip ediliyor</div>
         </div>
         <button className="btn btn-accent" onClick={onAddEvent}><Icon.Plus s={14} /> Ekle</button>
       </div>
@@ -1952,7 +1974,7 @@ function KmReminderFormModal({ open, editing, onClose }) {
 }
 
 /* ── Ayarlar ───────────────────────────────────────────── */
-function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmReminder, onEditKmReminder, onOpenExport }) {
+function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmReminder, onEditKmReminder, onOpenExport, onOpenFeedback }) {
   const store = useStore();
   const confirm = useConfirm();
   const importRef = useRef(null);
@@ -1998,7 +2020,6 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
       <div className="title-row">
         <div className="title-block">
           <h1>Ayarlar</h1>
-          <div className="sub">Tercihler</div>
         </div>
       </div>
 
@@ -2006,17 +2027,17 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
       <div style={{ padding: '0 22px' }}>
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
           {[
-            { key: 'vehicleName', label: 'Takma Ad', placeholder: 'örn. Benim Arabam' },
             { key: 'vehicleModel', label: 'Marka / Model', placeholder: 'örn. Toyota Corolla' },
-            { key: 'vehiclePlate', label: 'Plaka', placeholder: 'örn. 34 ABC 123' },
-          ].map(({ key, label, placeholder }, i) => (
+            { key: 'tankCapacity', label: 'Depo (L)', placeholder: 'örn. 55', inputMode: 'numeric' },
+          ].map(({ key, label, placeholder, inputMode }, i) => (
             <div key={key} style={{ padding: '10px 16px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ fontSize: 13, color: 'var(--text-2)', minWidth: 100, flexShrink: 0 }}>{label}</div>
               <input
                 style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--text)', fontFamily: 'var(--font-sans)', textAlign: 'right' }}
                 placeholder={placeholder}
+                inputMode={inputMode}
                 value={(store.prefs && store.prefs[key]) || ''}
-                onChange={(e) => store.setPref(key, e.target.value)}
+                onChange={(e) => store.setPref(key, inputMode === 'numeric' ? e.target.value.replace(/[^0-9]/g, '') : e.target.value)}
               />
             </div>
           ))}
@@ -2050,19 +2071,12 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
 
       <div className="section-title"><h3>Görünüm</h3></div>
       <div style={{ padding: '0 22px' }}>
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 14 }}>
-          <div className="label">Tema</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            <button className={`chip-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12 }}>
-              <Icon.Moon /> Koyu
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '8px 10px', display: 'flex', gap: 6 }}>
+          {[['dark', <Icon.Moon />, 'Koyu'], ['light', <Icon.Sun />, 'Açık'], ['system', <Icon.Settings s={14} />, 'Sistem']].map(([val, icon, label]) => (
+            <button key={val} className={`chip-btn ${theme === val ? 'active' : ''}`} onClick={() => setTheme(val)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              {icon} {label}
             </button>
-            <button className={`chip-btn ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12 }}>
-              <Icon.Sun /> Açık
-            </button>
-            <button className={`chip-btn ${theme === 'system' ? 'active' : ''}`} onClick={() => setTheme('system')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12 }}>
-              <Icon.Settings s={16} /> Sistem
-            </button>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -2084,9 +2098,26 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
           </div>
           <div className={`switch ${(store.prefs && store.prefs.showMinMax) ? 'on' : ''}`} onClick={() => store.setPref('showMinMax', !(store.prefs && store.prefs.showMinMax))} />
         </div>
+        <div className="row">
+          <div className="icon"><Icon.Plus s={16} /></div>
+          <div className="meta">
+            <h5>Ondalık Giriş</h5>
+            <p>Litre ve fiyat için virgüllü rakam</p>
+          </div>
+          <div className={`switch ${(store.prefs?.decimalInput !== false) ? 'on' : ''}`} onClick={() => store.setPref('decimalInput', store.prefs?.decimalInput === false)} />
+        </div>
       </div>
 
       <KmReminderSection onAdd={onAddKmReminder} onEdit={onEditKmReminder} />
+
+      <div className="section-title"><h3>Geri Bildirim</h3></div>
+      <div className="row-list">
+        <div className="row" style={{ cursor: 'pointer' }} onClick={onOpenFeedback}>
+          <div className="icon"><Icon.Star s={16} /></div>
+          <div className="meta"><h5>Öneride Bulun</h5><p>Görüş ve önerilerini ilet</p></div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
 
       <div className="section-title"><h3>Veriler</h3></div>
       <div className="row-list">
@@ -2214,6 +2245,7 @@ function EntrySheet({ open, onClose, editing }) {
   const [pricePerL, setPricePerL] = useState('');
   const [km, setKm] = useState('');
   const [station, setStation] = useState('');
+  const [stationPrefilled, setStationPrefilled] = useState(false);
   const [note, setNote] = useState('');
   const [full, setFull] = useState(true);
   const [errors, setErrors] = useState({});
@@ -2230,9 +2262,13 @@ function EntrySheet({ open, onClose, editing }) {
       setStation(editing.station || '');
       setNote(editing.note || '');
       setFull(!!editing.full);
+      setStationPrefilled(false);
     } else {
       setDateISO(todayISO());
-      setLiters(''); setPricePerL(''); setKm(''); setStation(''); setNote(''); setFull(true);
+      setLiters(''); setPricePerL(''); setKm(''); setNote(''); setFull(true);
+      const prefill = usedStations[0] || '';
+      setStation(prefill);
+      setStationPrefilled(!!prefill);
     }
   }, [open, editing]);
 
@@ -2300,12 +2336,18 @@ function EntrySheet({ open, onClose, editing }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
           <div>
             <div className="label">Litre</div>
-            <input className="input mono" inputMode="decimal" placeholder="0,00" value={liters} onChange={(e) => { setLiters(e.target.value.replace('.', ',')); setErrors((er) => ({ ...er, liters: undefined })); }} style={errors.liters ? { borderColor: 'var(--negative)' } : {}} />
+            <input className="input mono" inputMode={store.prefs?.decimalInput !== false ? 'decimal' : 'numeric'} placeholder={store.prefs?.decimalInput !== false ? '0,00' : '0'} value={liters} onChange={(e) => { setLiters(store.prefs?.decimalInput !== false ? e.target.value.replace('.', ',') : e.target.value.replace(/[^0-9]/g, '')); setErrors((er) => ({ ...er, liters: undefined })); }} style={errors.liters ? { borderColor: 'var(--negative)' } : {}} />
             {errors.liters && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>{errors.liters}</div>}
+            {!errors.liters && (() => {
+              const cap = parseFloat(store.prefs?.tankCapacity) || 0;
+              const l = parseNum(liters);
+              if (cap > 0 && l > cap) return <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>Depo kapasitesini aşıyor ({cap} L)</div>;
+              return null;
+            })()}
           </div>
           <div>
             <div className="label">₺ / Litre</div>
-            <input className="input mono" inputMode="decimal" placeholder="0,00" value={pricePerL} onChange={(e) => { setPricePerL(e.target.value.replace('.', ',')); setErrors((er) => ({ ...er, pricePerL: undefined })); }} style={errors.pricePerL ? { borderColor: 'var(--negative)' } : {}} />
+            <input className="input mono" inputMode={store.prefs?.decimalInput !== false ? 'decimal' : 'numeric'} placeholder={store.prefs?.decimalInput !== false ? '0,00' : '0'} value={pricePerL} onChange={(e) => { setPricePerL(store.prefs?.decimalInput !== false ? e.target.value.replace('.', ',') : e.target.value.replace(/[^0-9]/g, '')); setErrors((er) => ({ ...er, pricePerL: undefined })); }} style={errors.pricePerL ? { borderColor: 'var(--negative)' } : {}} />
             {errors.pricePerL && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>{errors.pricePerL}</div>}
           </div>
         </div>
@@ -2327,7 +2369,7 @@ function EntrySheet({ open, onClose, editing }) {
             ))}
           </div>
         )}
-        <input className="input" placeholder={fuelType === 'LPG' ? 'BRC, LPG Market…' : fuelType === 'Dizel' ? 'Shell, BP, Total…' : 'Shell, BP, Opet…'} value={station} onChange={(e) => setStation(e.target.value)} />
+        <input className="input" placeholder={fuelType === 'LPG' ? 'BRC, LPG Market…' : fuelType === 'Dizel' ? 'Shell, BP, Total…' : 'Shell, BP, Opet…'} value={station} style={stationPrefilled ? { color: 'var(--text-2)' } : undefined} onFocus={(e) => { if (stationPrefilled) e.target.select(); }} onChange={(e) => { setStation(e.target.value); setStationPrefilled(false); }} />
 
         <div className="label" style={{ marginTop: 10 }}>
           Not <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, fontSize: 11 }}>(opsiyonel)</span>
@@ -2673,6 +2715,42 @@ function NotificationChecker() {
   return null;
 }
 
+/* ── Feedback Sheet ────────────────────────────────────── */
+function FeedbackSheet({ onClose }) {
+  const [text, setText] = useState('');
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h2>Öneride Bulun</h2>
+          <button className="btn-icon" onClick={onClose}><Icon.X /></button>
+        </div>
+        <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <textarea
+            autoFocus
+            className="input"
+            style={{ width: '100%', minHeight: 120, resize: 'none', fontFamily: 'var(--font-sans)', fontSize: 14, boxSizing: 'border-box' }}
+            placeholder="Görüş ve önerilerini yaz…"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <button
+            className="btn btn-accent"
+            style={{ width: '100%', justifyContent: 'center' }}
+            disabled={!text.trim()}
+            onClick={() => {
+              window.open(`mailto:prism.software.dev@gmail.com?subject=Vitesse%20%C3%96neri&body=${encodeURIComponent(text)}`, '_blank');
+              onClose();
+            }}
+          >
+            Gönder
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Root App ──────────────────────────────────────────── */
 function App() {
   const [screen, setScreen] = useState('ozet');
@@ -2698,6 +2776,7 @@ function App() {
   const [lpgOpen, setLpgOpen] = useState(false);
   const [nearbyOpen, setNearbyOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   return (
     <ThemeCtx.Provider value={effectiveTheme}><LangCtx.Provider value={lang}><StoreProvider><NotificationChecker /><ConfirmProvider>
@@ -2709,7 +2788,7 @@ function App() {
                 {screen === 'ozet' && <OzetScreen onOpenNearby={() => setNearbyOpen(true)} />}
                 {screen === 'gecmis' && <GecmisScreen onEdit={(e) => setEntrySheet({ open: true, editing: e })} onOpenLpg={() => setLpgOpen(true)} />}
                 {screen === 'takvim' && <TakvimScreen onAddEvent={() => setEventSheet({ open: true, editing: null })} onEditEvent={(e) => setEventSheet({ open: true, editing: e })} />}
-                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onGizlilik={() => setScreen('gizlilik')} onAddKmReminder={() => setKmReminderForm({ open: true, editing: null })} onEditKmReminder={(r) => setKmReminderForm({ open: true, editing: r })} onOpenExport={() => setExportOpen(true)} />}
+                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onGizlilik={() => setScreen('gizlilik')} onAddKmReminder={() => setKmReminderForm({ open: true, editing: null })} onEditKmReminder={(r) => setKmReminderForm({ open: true, editing: r })} onOpenExport={() => setExportOpen(true)} onOpenFeedback={() => setFeedbackOpen(true)} />}
                 {screen === 'gizlilik' && <GizlilikScreen onBack={() => setScreen('ayarlar')} />}
               </div>
             </div>
@@ -2728,6 +2807,7 @@ function App() {
           {lpgOpen && <LpgSheet onClose={() => setLpgOpen(false)} />}
           {nearbyOpen && <NearbyStationsSheet onClose={() => setNearbyOpen(false)} />}
           {exportOpen && <ExportSheet onClose={() => setExportOpen(false)} />}
+          {feedbackOpen && <FeedbackSheet onClose={() => setFeedbackOpen(false)} />}
         </div>
       </div>
     </ConfirmProvider></StoreProvider></LangCtx.Provider></ThemeCtx.Provider>);
