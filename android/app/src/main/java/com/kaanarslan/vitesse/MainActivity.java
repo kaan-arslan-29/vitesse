@@ -1,4 +1,4 @@
-package com.kaanarslan.yakitdefteri;
+package com.kaanarslan.vitesse;
 
 import android.os.Bundle;
 import androidx.core.view.WindowCompat;

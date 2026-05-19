@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Vitesse</string>
     <string name="title_activity_main">Vitesse</string>
-    <string name="package_name">com.kaanarslan.yakitdefteri</string>
-    <string name="custom_url_scheme">com.kaanarslan.yakitdefteri</string>
+    <string name="package_name">com.kaanarslan.vitesse</string>
+    <string name="custom_url_scheme">com.kaanarslan.vitesse</string>
 </resources>
