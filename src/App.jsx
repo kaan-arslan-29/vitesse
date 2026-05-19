@@ -2098,14 +2098,6 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
           </div>
           <div className={`switch ${(store.prefs && store.prefs.showMinMax) ? 'on' : ''}`} onClick={() => store.setPref('showMinMax', !(store.prefs && store.prefs.showMinMax))} />
         </div>
-        <div className="row">
-          <div className="icon"><Icon.Plus s={16} /></div>
-          <div className="meta">
-            <h5>Ondalık Giriş</h5>
-            <p>Litre ve fiyat için virgüllü rakam</p>
-          </div>
-          <div className={`switch ${(store.prefs?.decimalInput !== false) ? 'on' : ''}`} onClick={() => store.setPref('decimalInput', store.prefs?.decimalInput === false)} />
-        </div>
       </div>
 
       <KmReminderSection onAdd={onAddKmReminder} onEdit={onEditKmReminder} />
@@ -2198,6 +2190,10 @@ function GizlilikScreen({ onBack }) {
             content: 'Uygulama, arayüz bileşenleri için unpkg.com CDN\'ini ve yazı tipleri için Google Fonts\'u kullanır. Bu hizmetler yalnızca uygulama yüklenirken erişilir ve kendi gizlilik politikalarına tabidir. Çevrimdışı kullanımda bu bağlantılar kurulmaz.'
           },
           {
+            title: 'Konum Verisi',
+            content: 'Uygulama, "Yakındaki İstasyonlar" özelliği için konum iznini talep eder. Konum verisi yalnızca yakındaki yakıt istasyonlarını listelemek amacıyla anlık olarak kullanılır; kaydedilmez ve hiçbir sunucuya gönderilmez.'
+          },
+          {
             title: 'Veri Silme',
             content: 'Tüm verilerinizi istediğiniz zaman Ayarlar ekranından silebilirsiniz. Tarayıcı verilerini temizlemek de aynı sonucu doğurur.'
           },
@@ -2207,7 +2203,7 @@ function GizlilikScreen({ onBack }) {
           },
           {
             title: 'İletişim',
-            content: 'Gizlilik politikasıyla ilgili sorularınız için arslankaan2901@gmail.com adresine ulaşabilirsiniz.'
+            content: 'Gizlilik politikasıyla ilgili sorularınız için aria.software.dev@gmail.com adresine ulaşabilirsiniz.'
           },
         ].map(({ title, content }) => (
           <div key={title}>
@@ -2245,7 +2241,6 @@ function EntrySheet({ open, onClose, editing }) {
   const [pricePerL, setPricePerL] = useState('');
   const [km, setKm] = useState('');
   const [station, setStation] = useState('');
-  const [stationPrefilled, setStationPrefilled] = useState(false);
   const [note, setNote] = useState('');
   const [full, setFull] = useState(true);
   const [errors, setErrors] = useState({});
@@ -2262,13 +2257,9 @@ function EntrySheet({ open, onClose, editing }) {
       setStation(editing.station || '');
       setNote(editing.note || '');
       setFull(!!editing.full);
-      setStationPrefilled(false);
     } else {
       setDateISO(todayISO());
-      setLiters(''); setPricePerL(''); setKm(''); setNote(''); setFull(true);
-      const prefill = usedStations[0] || '';
-      setStation(prefill);
-      setStationPrefilled(!!prefill);
+      setLiters(''); setPricePerL(''); setKm(''); setStation(''); setNote(''); setFull(true);
     }
   }, [open, editing]);
 
@@ -2336,7 +2327,7 @@ function EntrySheet({ open, onClose, editing }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
           <div>
             <div className="label">Litre</div>
-            <input className="input mono" inputMode={store.prefs?.decimalInput !== false ? 'decimal' : 'numeric'} placeholder={store.prefs?.decimalInput !== false ? '0,00' : '0'} value={liters} onChange={(e) => { setLiters(store.prefs?.decimalInput !== false ? e.target.value.replace('.', ',') : e.target.value.replace(/[^0-9]/g, '')); setErrors((er) => ({ ...er, liters: undefined })); }} style={errors.liters ? { borderColor: 'var(--negative)' } : {}} />
+            <input className="input mono" inputMode="decimal" placeholder="0,00" value={liters} onChange={(e) => { setLiters(e.target.value.replace('.', ',')); setErrors((er) => ({ ...er, liters: undefined })); }} style={errors.liters ? { borderColor: 'var(--negative)' } : {}} />
             {errors.liters && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>{errors.liters}</div>}
             {!errors.liters && (() => {
               const cap = parseFloat(store.prefs?.tankCapacity) || 0;
@@ -2347,7 +2338,7 @@ function EntrySheet({ open, onClose, editing }) {
           </div>
           <div>
             <div className="label">₺ / Litre</div>
-            <input className="input mono" inputMode={store.prefs?.decimalInput !== false ? 'decimal' : 'numeric'} placeholder={store.prefs?.decimalInput !== false ? '0,00' : '0'} value={pricePerL} onChange={(e) => { setPricePerL(store.prefs?.decimalInput !== false ? e.target.value.replace('.', ',') : e.target.value.replace(/[^0-9]/g, '')); setErrors((er) => ({ ...er, pricePerL: undefined })); }} style={errors.pricePerL ? { borderColor: 'var(--negative)' } : {}} />
+            <input className="input mono" inputMode="decimal" placeholder="0,00" value={pricePerL} onChange={(e) => { setPricePerL(e.target.value.replace('.', ',')); setErrors((er) => ({ ...er, pricePerL: undefined })); }} style={errors.pricePerL ? { borderColor: 'var(--negative)' } : {}} />
             {errors.pricePerL && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>{errors.pricePerL}</div>}
           </div>
         </div>
@@ -2369,7 +2360,7 @@ function EntrySheet({ open, onClose, editing }) {
             ))}
           </div>
         )}
-        <input className="input" placeholder={fuelType === 'LPG' ? 'BRC, LPG Market…' : fuelType === 'Dizel' ? 'Shell, BP, Total…' : 'Shell, BP, Opet…'} value={station} style={stationPrefilled ? { color: 'var(--text-2)' } : undefined} onFocus={(e) => { if (stationPrefilled) e.target.select(); }} onChange={(e) => { setStation(e.target.value); setStationPrefilled(false); }} />
+        <input className="input" placeholder={fuelType === 'LPG' ? 'BRC, LPG Market…' : fuelType === 'Dizel' ? 'Shell, BP, Total…' : 'Shell, BP, Opet…'} value={station} onChange={(e) => setStation(e.target.value)} />
 
         <div className="label" style={{ marginTop: 10 }}>
           Not <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, fontSize: 11 }}>(opsiyonel)</span>
@@ -2739,7 +2730,7 @@ function FeedbackSheet({ onClose }) {
             style={{ width: '100%', justifyContent: 'center' }}
             disabled={!text.trim()}
             onClick={() => {
-              window.open(`mailto:prism.software.dev@gmail.com?subject=Vitesse%20%C3%96neri&body=${encodeURIComponent(text)}`, '_blank');
+              window.open(`mailto:aria.software.dev@gmail.com?subject=Vitesse%20%C3%96neri&body=${encodeURIComponent(text)}`, '_blank');
               onClose();
             }}
           >
