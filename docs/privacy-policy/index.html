@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gizlilik Politikası – Vitesse</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f17;
+      color: #e0e0f0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 40px;
+      padding-top: 16px;
+    }
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: #7c6bff;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f0f0fa;
+      letter-spacing: -0.3px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #f0f0fa;
+      margin-bottom: 8px;
+      letter-spacing: -0.4px;
+    }
+    .updated {
+      font-size: 13px;
+      color: #6666a0;
+      margin-bottom: 32px;
+    }
+    .intro {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #9898b8;
+      margin-bottom: 40px;
+    }
+    .section {
+      margin-bottom: 32px;
+    }
+    .section h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f0f0fa;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #2a2a3c;
+    }
+    .section p {
+      font-size: 14px;
+      line-height: 1.75;
+      color: #9898b8;
+    }
+    .section p + p {
+      margin-top: 10px;
+    }
+    .contact-box {
+      background: #1a1a26;
+      border: 1px solid #2a2a3c;
+      border-radius: 14px;
+      padding: 20px;
+      margin-top: 40px;
+      margin-bottom: 40px;
+    }
+    .contact-box h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #c0c0da;
+      margin-bottom: 8px;
+    }
+    .contact-box a {
+      color: #7c6bff;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .contact-box a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="10" height="18" rx="1"/>
+          <path d="M3 13h10"/>
+          <path d="M13 8h2a2 2 0 0 1 2 2v5a2 2 0 0 0 4 0V9a2 2 0 0 0-.59-1.41l-1.66-1.66"/>
+        </svg>
+      </div>
+      <span class="logo-name">Vitesse</span>
+    </div>
+
+    <h1>Gizlilik Politikası</h1>
+    <p class="updated">Son güncelleme: Mayıs 2026</p>
+
+    <p class="intro">
+      Vitesse, aracınıza ait yakıt dolumlarını ve bakım etkinliklerini takip etmenizi sağlayan kişisel bir uygulamadır. Gizliliğiniz bizim için önceliklidir.
+    </p>
+
+    <div class="section">
+      <h2>Toplanan Veriler</h2>
+      <p>Girdiğiniz dolum kayıtları, bakım etkinlikleri ve tercihler öncelikle cihazınızın yerel depolama alanında (localStorage) saklanır. Google Drive yedekleme özelliğini etkinleştirirseniz bu veriler Google hesabınızın Drive uygulama klasörüne yüklenir; yalnızca sizin erişiminize açıktır.</p>
+      <p>Google OAuth ile giriş yaptığınızda e-posta adresiniz yerel olarak kaydedilir ve hesap bağlantısını kestiğinizde silinir.</p>
+    </div>
+
+    <div class="section">
+      <h2>Konum Verisi</h2>
+      <p>Uygulama, "Yakındaki İstasyonlar" özelliği için konum iznini talep eder. Konum koordinatları yalnızca yakın çevredeki yakıt istasyonlarını sorgulamak amacıyla Overpass API'ye anlık olarak iletilir; cihazda kaydedilmez ve başka herhangi bir amaçla kullanılmaz.</p>
+    </div>
+
+    <div class="section">
+      <h2>Veri Paylaşımı</h2>
+      <p>Verileriniz reklam amacıyla kullanılmaz veya üçüncü taraflara satılmaz. Google Drive yedekleme tercihini etkinleştirmeniz durumunda yedek dosyanız Google'ın altyapısında saklanır ve Google'ın gizlilik politikasına tabidir.</p>
+    </div>
+
+    <div class="section">
+      <h2>Üçüncü Taraf Hizmetler</h2>
+      <p><strong style="color:#c0c0da">Overpass API:</strong> "Yakındaki İstasyonlar" özelliği kullanıldığında konum koordinatlarınız Overpass API sunucusuna gönderilir; istasyon listesi alındıktan sonra herhangi bir veri saklanmaz.</p>
+      <p><strong style="color:#c0c0da">Google Drive &amp; OAuth:</strong> Yedekleme özelliği için kullanılır. Google'ın gizlilik politikasına tabidir.</p>
+      <p><strong style="color:#c0c0da">Leaflet / unpkg.com:</strong> Harita görüntüleme için kullanılır.</p>
+      <p><strong style="color:#c0c0da">Google Fonts:</strong> Yazı tipleri için kullanılır.</p>
+    </div>
+
+    <div class="section">
+      <h2>Bildirimler</h2>
+      <p>Uygulama, takvim etkinlikleri ve bakım hatırlatmaları için bildirim iznini talep eder. Bildirimler yalnızca cihazınızda yerel olarak oluşturulur; hiçbir sunucuya bağlanmaz. İzni cihaz ayarlarından istediğiniz zaman kapatabilirsiniz.</p>
+    </div>
+
+    <div class="section">
+      <h2>Veri Silme</h2>
+      <p>Ayarlar &gt; Tehlikeli Bölge ekranındaki <strong style="color:#c0c0da">"Tüm Verileri Sil"</strong> seçeneği yerel kayıtlarınızı ve Google Drive yedek dosyanızı kalıcı olarak siler.</p>
+      <p>Ayrıntılı talimatlar için: <a href="https://kaan-arslan-29.github.io/vitesse/delete-data.html" style="color:#7c6bff">veri silme sayfası</a></p>
+    </div>
+
+    <div class="section">
+      <h2>Çocukların Gizliliği</h2>
+      <p>Uygulama 13 yaş altı çocuklara yönelik değildir ve bu yaş grubundan bilerek veri toplanmaz.</p>
+    </div>
+
+    <div class="contact-box">
+      <h2>İletişim</h2>
+      <a href="mailto:aria.software.dev@gmail.com">aria.software.dev@gmail.com</a>
+    </div>
+  </div>
+</body>
+</html>
