@@ -2187,7 +2187,11 @@ function GizlilikScreen({ onBack }) {
           },
           {
             title: 'Üçüncü Taraf Hizmetler',
-            content: 'Uygulama, arayüz bileşenleri için unpkg.com CDN\'ini ve yazı tipleri için Google Fonts\'u kullanır. Bu hizmetler yalnızca uygulama yüklenirken erişilir ve kendi gizlilik politikalarına tabidir. Çevrimdışı kullanımda bu bağlantılar kurulmaz.'
+            content: 'OpenStreetMap/Overpass API yakındaki istasyonları listelemek için anlık konum koordinatını kullanır. Leaflet harita görüntüleme için unpkg.com CDN\'inden yüklenir. Google Fonts yazı tipleri için kullanılır. Bu hizmetler kendi gizlilik politikalarına tabidir.'
+          },
+          {
+            title: 'Bildirimler',
+            content: 'Uygulama, takvim etkinlikleri ve bakım hatırlatmaları için bildirim iznini talep eder. Bildirimler yalnızca cihazınızda yerel olarak oluşturulur; hiçbir sunucuya bağlanmaz. İzni cihaz ayarlarından istediğiniz zaman kapatabilirsiniz.'
           },
           {
             title: 'Konum Verisi',

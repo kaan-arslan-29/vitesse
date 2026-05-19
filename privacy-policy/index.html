@@ -46,9 +46,18 @@
 
   <div class="section">
     <h2>Üçüncü Taraf Hizmetler</h2>
-    <p>Uygulama, arayüz bileşenleri için unpkg.com CDN'ini ve yazı tipleri için Google Fonts'u
-    kullanır. Bu hizmetler yalnızca uygulama yüklenirken erişilir ve kendi gizlilik politikalarına
-    tabidir. Çevrimdışı kullanımda bu bağlantılar kurulmaz.</p>
+    <p>Uygulama aşağıdaki üçüncü taraf hizmetleri kullanır:</p>
+    <ul style="margin-top:8px; padding-left:18px; color:#94a3b8; font-size:14px; display:flex; flex-direction:column; gap:6px;">
+      <li><strong style="color:#e2e8f0">OpenStreetMap / Overpass API</strong> — Yakındaki yakıt istasyonlarını listelemek için kullanılır. Kişisel veri gönderilmez, yalnızca konum koordinatları anlık sorgu için iletilir.</li>
+      <li><strong style="color:#e2e8f0">Leaflet</strong> — Harita gösterimi için kullanılan açık kaynaklı bir kütüphanedir. unpkg.com CDN üzerinden yüklenir.</li>
+      <li><strong style="color:#e2e8f0">Google Fonts</strong> — Yazı tipleri için kullanılır. Çevrimdışı kullanımda bu bağlantı kurulmaz.</li>
+    </ul>
+    <p style="margin-top:8px;">Bu hizmetler kendi gizlilik politikalarına tabidir.</p>
+  </div>
+
+  <div class="section">
+    <h2>Bildirimler</h2>
+    <p>Uygulama, takvim etkinliklerinizi ve bakım hatırlatmalarını zamanında iletmek için bildirim iznini talep eder. Bildirimler yalnızca cihazınızda yerel olarak oluşturulur; hiçbir sunucuya bağlanmaz. İzni istediğiniz zaman cihaz ayarlarından kapatabilirsiniz.</p>
   </div>
 
   <div class="section">
