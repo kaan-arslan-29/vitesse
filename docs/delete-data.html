@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Veri Silme Talebi – Vitesse</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f17;
+      color: #e0e0f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #1a1a26;
+      border: 1px solid #2a2a3c;
+      border-radius: 20px;
+      padding: 40px 36px;
+      max-width: 540px;
+      width: 100%;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: #7c6bff;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f0f0fa;
+      letter-spacing: -0.3px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #f0f0fa;
+      margin-bottom: 12px;
+      letter-spacing: -0.3px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #8888a8;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #6666a0;
+      margin-bottom: 12px;
+    }
+    .steps {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(124, 107, 255, 0.18);
+      color: #7c6bff;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-text {
+      font-size: 14px;
+      color: #c0c0da;
+      line-height: 1.6;
+    }
+    .step-text strong {
+      color: #f0f0fa;
+    }
+    .info-box {
+      background: rgba(124, 107, 255, 0.08);
+      border: 1px solid rgba(124, 107, 255, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 13px;
+      color: #9898c8;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    .info-box strong {
+      color: #c0c0f0;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #2a2a3c;
+      margin-bottom: 24px;
+    }
+    .contact-title {
+      font-size: 13px;
+      color: #8888a8;
+      margin-bottom: 8px;
+    }
+    .contact-link {
+      color: #7c6bff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .contact-link:hover { text-decoration: underline; }
+    .warning-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid rgba(248, 113, 113, 0.25);
+      color: #f87171;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="10" height="18" rx="1"/>
+          <path d="M3 13h10"/>
+          <path d="M13 8h2a2 2 0 0 1 2 2v5a2 2 0 0 0 4 0V9a2 2 0 0 0-.59-1.41l-1.66-1.66"/>
+        </svg>
+      </div>
+      <span class="logo-name">Vitesse</span>
+    </div>
+
+    <h1>Verilerimi Sil</h1>
+    <p class="subtitle">
+      Vitesse'deki tüm verilerinizi doğrudan uygulama içinden kalıcı olarak silebilirsiniz.
+      Bu işlem yerel kayıtlarınızı ve Google Drive yedek dosyanızı geri alınamaz şekilde siler.
+    </p>
+
+    <div class="section-title">Uygulama içinden silme adımları</div>
+    <ul class="steps">
+      <li class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">Uygulamayı açın ve alt menüden <strong>Ayarlar</strong> sekmesine gidin.</div>
+      </li>
+      <li class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">Sayfayı aşağı kaydırarak <strong>Tehlikeli Bölge</strong> başlığını bulun.</div>
+      </li>
+      <li class="step">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>Tüm Verileri Sil</strong> seçeneğine dokunun ve onay iletişim kutusunda <strong>Sil</strong> butonuna basın.</div>
+      </li>
+    </ul>
+
+    <div class="warning-tag">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Bu işlem geri alınamaz
+    </div>
+
+    <div class="info-box">
+      <strong>Ne silinir?</strong><br/>
+      Tüm yakıt dolum kayıtları, takvim etkinlikleri ve uygulama tercihleri yerel depolamadan silinir.
+      Google Drive yedekleme özelliği aktifse Drive'daki yedek dosyası da kalıcı olarak kaldırılır ve Google hesabı bağlantısı kesilir.
+    </div>
+
+    <hr class="divider" />
+
+    <p class="contact-title">Uygulamaya erişiminiz yoksa e-posta ile talep gönderin:</p>
+    <a class="contact-link" href="mailto:aria.software.dev@gmail.com?subject=Veri%20Silme%20Talebi%20%E2%80%93%20Vitesse">
+      aria.software.dev@gmail.com
+    </a>
+  </div>
+</body>
+</html>
