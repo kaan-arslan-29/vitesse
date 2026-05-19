@@ -22,7 +22,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.kaanarslan.vitesse" android:host="oauth" />
+                <data android:scheme="com.googleusercontent.apps.629616234780-1u3fm53ioaslfjtbh4a4ud8637udhb0v" android:host="oauth2redirect" />
             </intent-filter>
         </activity>
 

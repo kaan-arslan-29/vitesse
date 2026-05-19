@@ -2779,9 +2779,9 @@ function NotificationChecker() {
 }
 
 /* ── Google Drive Backup ──────────────────────────────── */
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // Google Cloud Console'dan alınacak
+const GOOGLE_CLIENT_ID = '629616234780-1u3fm53ioaslfjtbh4a4ud8637udhb0v.apps.googleusercontent.com';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata email profile';
-const REDIRECT_URI = 'com.kaanarslan.vitesse://oauth';
+const REDIRECT_URI = 'com.googleusercontent.apps.629616234780-1u3fm53ioaslfjtbh4a4ud8637udhb0v:/oauth2redirect';
 const BACKUP_FILENAME = 'vitesse-backup.json';
 const TOKEN_KEY = 'vitesse-gdrive-token';
 const LAST_BACKUP_KEY = 'vitesse-last-backup';
@@ -2935,7 +2935,7 @@ function OAuthListener() {
   const drive = useDrive();
   useEffect(() => {
     const sub = CapApp.addListener('appUrlOpen', ({ url }) => {
-      if (url.startsWith(REDIRECT_URI)) drive.handleOAuthCallback(url);
+      if (url.includes('oauth2redirect') || url.includes('com.googleusercontent.apps')) drive.handleOAuthCallback(url);
     });
     return () => sub.then(s => s.remove()).catch(() => {});
   }, [drive.handleOAuthCallback]);
