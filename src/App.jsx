@@ -1,6 +1,8 @@
-﻿import React, { useState, useEffect, useMemo, useContext, createContext, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useContext, createContext, useRef, useCallback } from 'react';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import * as XLSX from 'xlsx';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -1974,6 +1976,70 @@ function KmReminderFormModal({ open, editing, onClose }) {
 }
 
 /* ── Ayarlar ───────────────────────────────────────────── */
+function GoogleDriveSection() {
+  const drive = useDrive();
+  const store = useStore();
+  const [restoreConfirm, setRestoreConfirm] = useState(false);
+
+  const handleRestore = async () => {
+    const data = await drive.restore();
+    if (data) { store.loadData(data); setRestoreConfirm(false); }
+  };
+
+  const fmtBackupTime = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+
+  return (
+    <>
+      <div className="section-title"><h3>Google Drive Yedekleme</h3></div>
+      <div className="row-list">
+        {drive.isSignedIn ? (
+          <>
+            <div className="row">
+              <div className="icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div className="meta">
+                <h5>{drive.email}</h5>
+                <p>{drive.backupStatus === 'saving' ? 'Yedekleniyor…' : drive.backupStatus === 'error' ? 'Yedekleme başarısız' : drive.lastBackup ? `Son yedek: ${fmtBackupTime(drive.lastBackup)}` : 'Henüz yedek alınmadı'}</p>
+              </div>
+              {drive.backupStatus === 'saving' && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, animation: 'spin 1s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>}
+            </div>
+            {!restoreConfirm ? (
+              <div className="row" style={{ cursor: 'pointer' }} onClick={() => setRestoreConfirm(true)}>
+                <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></div>
+                <div className="meta"><h5>Drive'dan Geri Yükle</h5><p>Mevcut veriler yedekle değiştirilir</p></div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            ) : (
+              <div className="row">
+                <div className="meta"><h5>Emin misin?</h5><p>Mevcut tüm veriler silinir</p></div>
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => setRestoreConfirm(false)}>İptal</button>
+                  <button className="btn btn-accent" style={{ padding: '6px 12px', fontSize: 12 }} onClick={handleRestore}>Geri Yükle</button>
+                </div>
+              </div>
+            )}
+            <div className="row" style={{ cursor: 'pointer' }} onClick={drive.signOut}>
+              <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+              <div className="meta"><h5>Hesabı Bağla</h5><p>Google Drive bağlantısını kes</p></div>
+            </div>
+          </>
+        ) : (
+          <div className="row" style={{ cursor: 'pointer' }} onClick={drive.signIn}>
+            <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div>
+            <div className="meta"><h5>Google ile Bağlan</h5><p>Veriler otomatik yedeklenir</p></div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmReminder, onEditKmReminder, onOpenExport, onOpenFeedback }) {
   const store = useStore();
   const confirm = useConfirm();
@@ -2101,6 +2167,8 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
       </div>
 
       <KmReminderSection onAdd={onAddKmReminder} onEdit={onEditKmReminder} />
+
+      <GoogleDriveSection />
 
       <div className="section-title"><h3>Geri Bildirim</h3></div>
       <div className="row-list">
@@ -2710,6 +2778,187 @@ function NotificationChecker() {
   return null;
 }
 
+/* ── Google Drive Backup ──────────────────────────────── */
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // Google Cloud Console'dan alınacak
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata email profile';
+const REDIRECT_URI = 'com.kaanarslan.vitesse://oauth';
+const BACKUP_FILENAME = 'vitesse-backup.json';
+const TOKEN_KEY = 'vitesse-gdrive-token';
+const LAST_BACKUP_KEY = 'vitesse-last-backup';
+
+function rndStr(n) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  return Array.from(crypto.getRandomValues(new Uint8Array(n)), b => chars[b % chars.length]).join('');
+}
+async function pkceChallenge(verifier) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+const loadToken = () => { try { return JSON.parse(localStorage.getItem(TOKEN_KEY)); } catch { return null; } };
+const saveToken = t => localStorage.setItem(TOKEN_KEY, JSON.stringify(t));
+const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+
+async function driveGetFile(accessToken) {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${BACKUP_FILENAME}'&fields=files(id,modifiedTime)`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  const d = await res.json();
+  return d.files?.[0] || null;
+}
+async function driveUpload(accessToken, data, fileId) {
+  const content = JSON.stringify(data);
+  const boundary = 'vitesse_bnd';
+  const meta = fileId ? '{}' : JSON.stringify({ name: BACKUP_FILENAME, parents: ['appDataFolder'] });
+  const body = `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${boundary}--`;
+  const url = fileId
+    ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
+    : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+  const res = await fetch(url, {
+    method: fileId ? 'PATCH' : 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': `multipart/related; boundary="${boundary}"` },
+    body,
+  });
+  if (!res.ok) throw new Error('upload_failed');
+  return res.json();
+}
+async function driveDownload(accessToken, fileId) {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) throw new Error('download_failed');
+  return res.json();
+}
+async function refreshToken(refreshTok) {
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: GOOGLE_CLIENT_ID, refresh_token: refreshTok, grant_type: 'refresh_token' }),
+  });
+  if (!res.ok) throw new Error('refresh_failed');
+  return res.json();
+}
+
+const DriveCtx = createContext(null);
+function useDrive() { return useContext(DriveCtx); }
+
+function DriveProvider({ children }) {
+  const [token, setToken] = useState(loadToken);
+  const [backupStatus, setBackupStatus] = useState('idle'); // idle | saving | restoring | error
+
+  const lastBackup = token?.lastBackup || null;
+
+  const getAccessToken = useCallback(async () => {
+    let t = token;
+    if (!t) return null;
+    if (t.expiry && Date.now() > t.expiry - 300000) {
+      try {
+        const r = await refreshToken(t.refreshToken);
+        t = { ...t, accessToken: r.access_token, expiry: Date.now() + r.expires_in * 1000 };
+        saveToken(t); setToken(t);
+      } catch { clearToken(); setToken(null); return null; }
+    }
+    return t.accessToken;
+  }, [token]);
+
+  const backup = useCallback(async (data) => {
+    const at = await getAccessToken();
+    if (!at) return;
+    setBackupStatus('saving');
+    try {
+      const existing = await driveGetFile(at);
+      await driveUpload(at, data, existing?.id);
+      const now = new Date().toISOString();
+      setToken(t => { const nt = { ...t, lastBackup: now }; saveToken(nt); return nt; });
+      setBackupStatus('idle');
+    } catch { setBackupStatus('error'); setTimeout(() => setBackupStatus('idle'), 3000); }
+  }, [getAccessToken]);
+
+  const restore = useCallback(async () => {
+    const at = await getAccessToken();
+    if (!at) return null;
+    setBackupStatus('restoring');
+    try {
+      const file = await driveGetFile(at);
+      if (!file) { setBackupStatus('idle'); return null; }
+      const data = await driveDownload(at, file.id);
+      setBackupStatus('idle');
+      return data;
+    } catch { setBackupStatus('error'); setTimeout(() => setBackupStatus('idle'), 3000); return null; }
+  }, [getAccessToken]);
+
+  const signIn = useCallback(async () => {
+    const verifier = rndStr(64);
+    const challenge = await pkceChallenge(verifier);
+    localStorage.setItem('vitesse-pkce', verifier);
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID, redirect_uri: REDIRECT_URI,
+      response_type: 'code', scope: DRIVE_SCOPE,
+      code_challenge: challenge, code_challenge_method: 'S256',
+      access_type: 'offline', prompt: 'consent',
+    });
+    await Browser.open({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` });
+  }, []);
+
+  const handleOAuthCallback = useCallback(async (url) => {
+    const code = new URL(url).searchParams.get('code');
+    if (!code) return;
+    const verifier = localStorage.getItem('vitesse-pkce');
+    localStorage.removeItem('vitesse-pkce');
+    try {
+      const res = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ client_id: GOOGLE_CLIENT_ID, code, code_verifier: verifier, grant_type: 'authorization_code', redirect_uri: REDIRECT_URI }),
+      });
+      const td = await res.json();
+      const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${td.access_token}` } });
+      const user = await userRes.json();
+      const t = { accessToken: td.access_token, refreshToken: td.refresh_token, expiry: Date.now() + td.expires_in * 1000, email: user.email };
+      saveToken(t); setToken(t);
+    } catch { /* silent */ }
+    await Browser.close().catch(() => {});
+  }, []);
+
+  const signOut = useCallback(() => { clearToken(); setToken(null); }, []);
+
+  const value = useMemo(() => ({
+    isSignedIn: !!token,
+    email: token?.email,
+    lastBackup,
+    backupStatus,
+    signIn, signOut, backup, restore, handleOAuthCallback,
+  }), [token, backupStatus, lastBackup, signIn, signOut, backup, restore, handleOAuthCallback]);
+
+  return <DriveCtx.Provider value={value}>{children}</DriveCtx.Provider>;
+}
+
+function OAuthListener() {
+  const drive = useDrive();
+  useEffect(() => {
+    const sub = CapApp.addListener('appUrlOpen', ({ url }) => {
+      if (url.startsWith(REDIRECT_URI)) drive.handleOAuthCallback(url);
+    });
+    return () => sub.then(s => s.remove()).catch(() => {});
+  }, [drive.handleOAuthCallback]);
+  return null;
+}
+
+function AutoBackup() {
+  const store = useStore();
+  const drive = useDrive();
+  const timer = useRef(null);
+
+  useEffect(() => {
+    if (!drive.isSignedIn) return;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      drive.backup({ entries: store.entries, events: store.events || [], prefs: store.prefs || {} });
+    }, 3000);
+    return () => clearTimeout(timer.current);
+  }, [store.entries, store.events, store.prefs, drive.isSignedIn]);
+
+  return null;
+}
+
 /* ── Feedback Sheet ────────────────────────────────────── */
 function FeedbackSheet({ onClose }) {
   const [text, setText] = useState('');
@@ -2774,7 +3023,7 @@ function App() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   return (
-    <ThemeCtx.Provider value={effectiveTheme}><LangCtx.Provider value={lang}><StoreProvider><NotificationChecker /><ConfirmProvider>
+    <ThemeCtx.Provider value={effectiveTheme}><LangCtx.Provider value={lang}><StoreProvider><DriveProvider><OAuthListener /><AutoBackup /><NotificationChecker /><ConfirmProvider>
       <div className="ios-device">
         <div className="ios-screen" data-theme={effectiveTheme}>
           <div className="app">
@@ -2805,7 +3054,7 @@ function App() {
           {feedbackOpen && <FeedbackSheet onClose={() => setFeedbackOpen(false)} />}
         </div>
       </div>
-    </ConfirmProvider></StoreProvider></LangCtx.Provider></ThemeCtx.Provider>);
+    </ConfirmProvider></DriveProvider></StoreProvider></LangCtx.Provider></ThemeCtx.Provider>);
 
 }
 
