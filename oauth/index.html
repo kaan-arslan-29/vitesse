@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vitesse — Yönlendiriliyor</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #0B0F11; color: #e2e8f0; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; flex-direction: column; gap: 12px; }
+    p { color: #64748b; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <p>Uygulamaya yönlendiriliyor…</p>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const error = params.get('error');
+    if (code) {
+      window.location.href = 'com.kaanarslan.vitesse://oauth?code=' + encodeURIComponent(code);
+    } else if (error) {
+      document.querySelector('p').textContent = 'Giriş iptal edildi.';
+    }
+  </script>
+</body>
+</html>
