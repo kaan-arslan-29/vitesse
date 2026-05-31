@@ -210,13 +210,14 @@ const BatteryIcon = () =>
 
 
 /* ── Format helpers ────────────────────────────────────── */
-const fmt = (n, d = 2) => {
+// These are module-level defaults; language-aware versions are created inside components via useFmt()
+const fmt = (n, d = 2, locale = 'tr-TR') => {
   if (n === null || n === undefined || Number.isNaN(n)) return '—';
-  return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  return Number(n).toLocaleString(locale, { minimumFractionDigits: d, maximumFractionDigits: d });
 };
-const fmtInt = (n) => {
+const fmtInt = (n, locale = 'tr-TR') => {
   if (n === null || n === undefined || Number.isNaN(n)) return '—';
-  return Number(n).toLocaleString('tr-TR');
+  return Number(n).toLocaleString(locale);
 };
 const APP_VERSION = 'v16';
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -224,8 +225,12 @@ const parseISO = (s) => {if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;c
 const fmtDate = (s) => {const d = parseISO(s);if (!d) return '';return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;};
 const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 const TR_MONTHS_FULL = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
-const dayMon = (s) => {const d = parseISO(s);if (!d) return { d: '--', m: '---' };return { d: String(d.getDate()).padStart(2, '0'), m: TR_MONTHS[d.getMonth()] };};
-const monthLabel = (yyyyMM) => { const [y, m] = yyyyMM.split('-'); return `${TR_MONTHS_FULL[parseInt(m, 10) - 1]} ${y}`; };
+const EN_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const EN_MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS_BY_LANG = { tr: TR_MONTHS, en: EN_MONTHS };
+const MONTHS_FULL_BY_LANG = { tr: TR_MONTHS_FULL, en: EN_MONTHS_FULL };
+const dayMon = (s, lang = 'tr') => {const d = parseISO(s);if (!d) return { d: '--', m: '---' };return { d: String(d.getDate()).padStart(2, '0'), m: (MONTHS_BY_LANG[lang] || TR_MONTHS)[d.getMonth()] };};
+const monthLabel = (yyyyMM, lang = 'tr') => { const [y, m] = yyyyMM.split('-'); return `${(MONTHS_FULL_BY_LANG[lang] || TR_MONTHS_FULL)[parseInt(m, 10) - 1]} ${y}`; };
 const todayISO = () => {const d = new Date();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;};
 const yesterdayISO = () => {const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;};
 const daysUntil = (iso) => {const b = parseISO(iso);if (!b) return 0;return Math.round((b - new Date()) / 86400000);};
@@ -286,27 +291,702 @@ const TRANSLATIONS = {
     ozet: 'Özet', gecmis: 'Geçmiş', takvim: 'Takvim', ayarlar: 'Ayarlar',
     addFuel: 'Dolum ekle', noEntries: 'Henüz dolum kaydı yok',
     noEntriesSub: 'İlk dolumunu ekleyerek yakıt tüketimini ve harcamalarını takip etmeye başla.',
+    // confirm dialog
+    areYouSure: 'Emin misin?',
+    cancel: 'İptal',
+    delete: 'Sil',
+    // nav
+    navOzet: 'Özet',
+    navGecmis: 'Geçmiş',
+    navTakvim: 'Takvim',
+    navAyarlar: 'Ayarlar',
+    // event type buttons (short labels for buttons)
+    eventBtnKasko: 'Kasko',
+    eventBtnSigorta: 'Sigorta',
+    eventBtnMuayene: 'Muayene',
+    eventBtnBakim: 'Bakım',
+    eventBtnDiger: 'Diğer',
+    // currency names
+    currNameLira: 'Lira',
+    currNameDollar: 'Dolar',
+    currNameEuro: 'Euro',
+    // GiderDagilimi
+    giderDagilimi: 'Gider Dağılımı',
+    toplam: 'Toplam',
+    // event types
+    eventKasko: 'Kasko',
+    eventSigorta: 'Sigorta',
+    eventMuayene: 'Muayene',
+    eventBakim: 'Bakım',
+    eventDiger: 'Diğer',
+    // fuel types
+    fuelBenzin: 'Benzin',
+    fuelDizel: 'Dizel',
+    fuelLPG: 'LPG',
+    // ExportSheet
+    exportTitle: 'Dışa Aktar',
+    exportFormat: 'Hangi formatta dışa aktarmak istiyorsun?',
+    exportExcelSub: 'Dolumlar ve takvim ayrı sekmelerde',
+    exportJsonSub: 'İçe aktarma için uygun, tam yedek',
+    // ImportSheet
+    importTitle: 'İçe Aktar',
+    importDesc: 'Dışa aktarılan JSON dosyasını seç.',
+    importJsonSub: 'Vitesse uygulamasından dışa aktarılan yedek',
+    importSuccess: 'Veriler başarıyla içe aktarıldı.',
+    importError: 'Geçersiz dosya. Lütfen dışa aktarılan bir JSON dosyası seçin.',
+    // Excel headers
+    xlsxDate: 'Tarih',
+    xlsxKm: 'Km',
+    xlsxLiters: 'Litre',
+    xlsxPricePerL: 'Fiyat/L ({c})',
+    xlsxTotal: 'Toplam ({c})',
+    xlsxFullTank: 'Tam Depo',
+    xlsxStation: 'İstasyon',
+    xlsxNote: 'Not',
+    xlsxType: 'Tür',
+    xlsxStart: 'Başlangıç',
+    xlsxEnd: 'Bitiş',
+    xlsxCost: 'Maliyet ({c})',
+    xlsxSheetFuel: 'Dolumlar',
+    xlsxSheetCalendar: 'Takvim',
+    xlsxYes: 'Evet',
+    xlsxNo: 'Hayır',
+    // LPG sheet
+    lpgTitle: 'LPG Dönüşüm Hesabı',
+    lpgMonthlySpend: 'Aylık tüketim ({c})',
+    lpgMonthlyPlaceholder: 'örn. 6500',
+    lpgGasolinePrice: 'Benzin fiyatı ({c}/L)',
+    lpgGasolineSub: 'Son dolum fiyatı',
+    lpgInstallCost: 'Montaj maliyeti ({c})',
+    lpgLpgPrice: 'LPG litre fiyatı ({c})',
+    lpgConsumptionDiff: 'Tüketim farkı (%)',
+    lpgConsumptionDiffSub: 'LPG genelde %15–20 fazla tüketir',
+    lpgMonthlySaving: 'Aylık tasarruf',
+    lpgYearlySaving: 'Yıllık tasarruf',
+    lpgBreakEven: 'Amorti süresi',
+    lpgNotWorthIt: 'Bu fiyatlarla LPG daha pahalıya geliyor, dönüşüm tavsiye edilmez.',
+    lpgDisclaimer: '* Otomatik doldurulan değerler değiştirilebilir. Gerçek tasarruf araca ve kullanıma göre değişir.',
+    lpgYear: 'yıl',
+    lpgMonth: 'ay',
+    // OzetScreen
+    ozetTitle: 'Özet',
+    ozetSubFills: 'dolum kaydı',
+    ozetNoEntries: 'Henüz dolum kaydı yok',
+    ozetNoEntriesSub: 'İlk dolumunu ekleyerek yakıt tüketimini ve harcamalarını takip etmeye başla.',
+    ozetAddFuel: 'Dolum ekle',
+    ozetAvgConsumption: 'Ortalama Tüketim',
+    ozetInfoFull: 'Tam depolar arası · son',
+    ozetInfoFull2: 'dolum',
+    ozetInfoMin: 'En az 2 tam depo gerekli',
+    ozetStations: 'İstasyonlar',
+    ozetLastPaid: 'Son dolumda ödenen',
+    ozetThisMonthSpend: 'Bu ay harcama',
+    ozetPerKm: 'km başına',
+    ozetLastFillup: 'Son dolum',
+    ozetThisYearSpend: 'Bu yıl harcama',
+    ozetAvgPerMonth: 'ort.',
+    ozetPerMonth: '{c}/ay',
+    ozetPerFillAvg: 'ort.',
+    ozetKmPerFill: 'km/dolum',
+    ozetAllTime: 'tüm zamanlar',
+    ozetToday: 'Bugün',
+    ozetYesterday: 'Dün',
+    ozetDaysAgo: 'gün önce',
+    ozetConsumptionTrend: 'Tüketim Trendi',
+    ozetFilterAll: 'Tümü',
+    ozetFilter3m: '3 ay',
+    ozetFilterYear: 'Bu yıl',
+    ozetInsufficientData: 'Bu dönemde yeterli veri yok',
+    ozetReminders: 'Hatırlatmalar',
+    ozetNoReminders: 'Yaklaşan hatırlatma yok',
+    ozetNoRemindersSub: 'Takvim sekmesinden muayene, sigorta gibi etkinlikler ekleyebilirsin.',
+    ozetKmOverdue: 'km geçti',
+    ozetKmLeft: 'km kaldı',
+    ozetDaysOverdue: 'gün gecikti',
+    ozetDays: 'gün',
+    ozetEvery: 'Her',
+    ozetKm: 'km',
+    // GecmisScreen
+    gecmisTitle: 'Geçmiş',
+    gecmisLpgBtn: 'LPG Hesabı',
+    gecmisPriceHistory: 'Fiyat Geçmişi',
+    gecmisMonthlyConsumption: 'Aylık Tüketim',
+    gecmisStationComparison: 'İstasyon Karşılaştırması',
+    gecmisStationInfoTooltip: 'Enflasyon etkisini azaltmak için hep son 3 aya bakılır',
+    gecmisStationCheap: 'UCUZ',
+    gecmisAllFills: 'Tüm Dolumlar',
+    gecmisMonthFills: 'Bu Ayki Dolumlar',
+    gecmis3mFills: 'Son 3 Aylık Dolumlar',
+    gecmisYearFills: 'Bu Yılki Dolumlar',
+    gecmisNoEntries: 'Henüz dolum kaydı yok',
+    gecmisNoPeriod: 'Bu dönemde kayıt yok',
+    gecmisNoEntriesSub: 'İlk dolumunu ekleyerek yakıt tüketimini takip etmeye başla.',
+    gecmisNoPeriodSub: 'Seçili zaman aralığında dolum kaydı bulunmuyor.',
+    gecmisDeleteMsg: 'Bu dolum kaydı kalıcı olarak silinecek.',
+    gecmisFillFull: 'Tam',
+    gecmisFillPartial: 'Yarım',
+    gecmisFillsCount: 'dolum',
+    gecmisFilterAll: 'Tümü',
+    gecmisFilterMonth: 'Bu ay',
+    gecmisFilter3m: 'Son 3 ay',
+    gecmisFilterYear: 'Bu yıl',
+    gecmisDateRange3m: 'Son 3 ay',
+    gecmisDateRangeYear: 'Bu yıl',
+    gecmisSon3Ay: 'Son 3 ay',
+    // TakvimScreen
+    takvimTitle: 'Takvim',
+    takvimAdd: 'Ekle',
+    takvimNoEvents: 'Henüz etkinlik yok',
+    takvimNoEventsSub: 'Muayene, sigorta, lastik gibi hatırlatmaları buradan takip edebilirsin.',
+    takvimAddEvent: 'Etkinlik ekle',
+    takvimOngoing: 'Devam Eden',
+    takvimExpired: 'Süresi Dolmuş',
+    takvimDeleteMsg: 'Bu etkinlik kalıcı olarak silinecek.',
+    takvimToday: 'Bugün',
+    // NearbyStations
+    nearbyTitle: 'Yakındaki İstasyonlar',
+    nearbyCount: 'istasyon · 5 km içinde',
+    nearbyLoading: 'Konum alınıyor…',
+    nearbyLoadingStations: 'İstasyonlar yükleniyor…',
+    nearbyError: 'İstasyonlar yüklenemedi. İnternet bağlantısını kontrol edin.',
+    nearbyLocationError: 'Konum erişimi bu cihazda desteklenmiyor.',
+    nearbyLocationDenied: 'Konum alınamadı. Lütfen konum iznini kontrol edin.',
+    nearbyRetry: 'Tekrar Dene',
+    nearbyDirectionsHint: 'Yol tarifi almak için butona bas',
+    nearbyDistance: 'Mesafe',
+    nearbyDuration: 'Tahmini Süre',
+    nearbyCalculating: 'Hesaplanıyor…',
+    nearbyCloseRoute: 'Rotayı Kapat',
+    nearbyGetDirections: 'Yol Tarifi',
+    nearbyFuelStation: 'Yakıt İstasyonu',
+    // KmReminderSection
+    kmRemindersTitle: 'Km Hatırlatmaları',
+    kmReminderAdd: 'Ekle',
+    kmReminderEvery: 'Her',
+    kmReminderLast: 'Son:',
+    kmReminderNext: 'Sonraki:',
+    // KmReminderFormModal
+    kmFormEditTitle: 'Hatırlatmayı Düzenle',
+    kmFormNewTitle: 'Yeni Km Hatırlatması',
+    kmFormLabel: 'Açıklama',
+    kmFormLabelPlaceholder: 'örn. Yağ Değişimi',
+    kmFormInterval: 'Aralık (km)',
+    kmFormLastDone: 'Son yapılan (km)',
+    kmFormLabelRequired: 'Açıklama girilmeli',
+    kmFormIntervalRequired: 'Aralık km girilmeli',
+    kmFormUpdate: 'Güncelle',
+    kmFormSave: 'Kaydet',
+    // AyarlarScreen
+    ayarlarTitle: 'Ayarlar',
+    ayarlarVehicle: 'Araç',
+    ayarlarModel: 'Marka / Model',
+    ayarlarModelPlaceholder: 'örn. Toyota Corolla',
+    ayarlarTank: 'Depo (L)',
+    ayarlarTankPlaceholder: 'örn. 55',
+    ayarlarFuelType: 'Yakıt Tipi',
+    ayarlarLanguage: 'Dil',
+    ayarlarCurrency: 'Para Birimi',
+    ayarlarTheme: 'Görünüm',
+    ayarlarThemeDark: 'Koyu',
+    ayarlarThemeLight: 'Açık',
+    ayarlarThemeSystem: 'Sistem',
+    ayarlarPrefs: 'Tercihler',
+    ayarlarNotifications: 'Bildirimler',
+    ayarlarNotificationsSub: 'Takvim etkinlikleri dolmadan önce hatırlatma gönderir',
+    ayarlarMinMax: 'Min/Maks İşaretleri',
+    ayarlarMinMaxSub: 'Grafiklerde en düşük ve yüksek noktalar',
+    ayarlarFeedback: 'Geri Bildirim',
+    ayarlarSuggest: 'Öneride Bulun',
+    ayarlarSuggestSub: 'Görüş ve önerilerini ilet',
+    ayarlarManualBackup: 'Manuel Yedekleme',
+    ayarlarExport: 'Dışa Aktar',
+    ayarlarExportSub: 'Excel veya JSON olarak kaydet',
+    ayarlarImport: 'İçe Aktar',
+    ayarlarImportSub: 'Daha önce dışa aktarılan JSON dosyası',
+    ayarlarDanger: 'Tehlikeli Bölge',
+    ayarlarReset: 'Verileri Sıfırla',
+    ayarlarResetSub: 'Kayıtlar silinir, örnek veriler yüklenir',
+    ayarlarResetMsg: 'Tüm dolum ve takvim kayıtları silinecek, örnek veriler yüklenecek. Araç bilgilerin ve tercihler korunur.',
+    ayarlarResetConfirm: 'Sıfırla',
+    ayarlarDeleteAll: 'Tüm Verileri Sil',
+    ayarlarDeleteAllSub: 'Yerel veriler ve Drive yedeği tamamen silinir',
+    ayarlarDeleteAllMsg: 'Tüm yerel veriler ve Google Drive yedeği kalıcı olarak silinecek. Bu işlem geri alınamaz.',
+    ayarlarAbout: 'Hakkında',
+    ayarlarPrivacy: 'Gizlilik Politikası',
+    ayarlarVersion: 'Versiyon',
+    // Google Drive
+    driveTitle: 'Google Drive Yedekleme',
+    driveSaving: 'Yedekleniyor…',
+    driveError: 'Yedekleme başarısız',
+    driveLastBackup: 'Son yedek:',
+    driveNoBackup: 'Henüz yedek alınmadı',
+    driveRestore: "Drive'dan Geri Yükle",
+    driveRestoreSub: 'Mevcut veriler yedekle değiştirilir',
+    driveRestoreConfirmTitle: 'Emin misin?',
+    driveRestoreConfirmSub: 'Mevcut tüm veriler silinir',
+    driveRestoreBtn: 'Geri Yükle',
+    driveDisconnect: 'Hesabı Bağla',
+    driveDisconnectSub: "Google Drive bağlantısını kes",
+    driveConnect: 'Google ile Bağlan',
+    driveConnectSub: 'Veriler otomatik yedeklenir',
+    // EntrySheet
+    entryEditTitle: 'dolumunu düzenle',
+    entryNewTitle: 'Yeni',
+    entryFillupSuffix: 'Dolumu',
+    entryDate: 'Tarih',
+    entryToday: 'Bugün',
+    entryYesterday: 'Dün',
+    entryKm: 'Kilometre',
+    entryLastRecord: 'Son kayıt:',
+    entryTooFew: 'çok az?',
+    entryTooMany: 'çok fazla?',
+    entryLiters: 'Litre',
+    entryPricePerL: '{c} / Litre',
+    entryFullTank: 'Tam depo',
+    entryFullTankSub: 'Tüketim hesabı bir sonraki tam depoyla yapılır.',
+    entryStation: 'İstasyon',
+    entryOptional: '(opsiyonel)',
+    entryNote: 'Not',
+    entryNotePlaceholder: 'Uzun yol, bakım sonrası…',
+    entryTotal: 'Toplam',
+    entrySave: 'Kaydet',
+    entryUpdate: 'Güncelle',
+    entryDiscardTitle: 'Vazgeç?',
+    entryDiscardSub: 'Girilen bilgiler kaydedilmeyecek.',
+    entryDiscardExit: 'Çıkış',
+    entryDiscardContinue: 'Düzenlemeye devam et',
+    entryCapacityExceeded: 'Depo kapasitesini aşıyor',
+    entryDateFuture: 'Gelecek tarih girilemez',
+    entryKmRequired: 'Kilometre girilmeli',
+    entryKmTooLow: 'Önceki dolumdan düşük olamaz (son:',
+    entryLitersRequired: 'Litre girilmeli',
+    entryPriceRequired: 'Fiyat girilmeli',
+    // EventSheet
+    eventEditTitle: 'Etkinliği düzenle',
+    eventNewTitle: 'Yeni etkinlik',
+    eventEditSub: 'Etkinlik bilgilerini düzenle',
+    eventStart: 'Başlangıç',
+    eventEnd: 'Bitiş',
+    eventDays: 'gün',
+    eventEndPast: 'Bitiş tarihi geçmişte',
+    eventNotifyDays: 'Önceden bildir (gün)',
+    eventNotifyInfo: "Uygulama her açıldığında kontrol edilir. Bildirimlerin çalışması için Ayarlar → Bildirimler'i aç.",
+    eventServiceKm: 'Yapıldığı km',
+    eventCost: 'Maliyet',
+    eventNote: 'Not',
+    eventSave: 'Kaydet',
+    eventUpdate: 'Güncelle',
+    eventCustomTypePlaceholder: 'Tür adı girin…',
+    eventCustomTypeRequired: 'Tür adı girilmeli',
+    eventEndRequired: 'Bitiş tarihi gerekli',
+    eventEndBeforeStart: 'Bitiş tarihi başlangıçtan önce olamaz',
+    eventNotePlaceholderInsurance: 'Poliçe numarası, şirket adı…',
+    eventNotePlaceholderService: 'Yapılan işlemler…',
+    eventNotePlaceholderDefault: 'Not…',
+    // KmPromptModal
+    kmPromptTitle: 'Km Hatırlatması',
+    kmPromptSub: "km'de bakım yapıldı. Bir sonraki hatırlatma eklensin mi?",
+    kmPromptInterval: 'Aralık (km)',
+    kmPromptNextService: 'Sonraki bakım:',
+    kmPromptAdd: 'Hatırlatma Ekle',
+    kmPromptSkip: 'Geç',
+    // FeedbackSheet
+    feedbackTitle: 'Öneride Bulun',
+    feedbackPlaceholder: 'Görüş ve önerilerini yaz…',
+    feedbackSend: 'Gönder',
+    // AreaChart
+    chartInsufficient: 'Yetersiz veri',
+    // GizlilikScreen
+    privacyTitle: 'Gizlilik Politikası',
+    privacyLastUpdate: 'Son güncelleme: Mayıs 2026',
+    privacyIntro: 'Vitesse, aracınıza ait yakıt dolumlarını ve bakım etkinliklerini takip etmenizi sağlayan kişisel bir uygulamadır. Gizliliğiniz bizim için önceliklidir.',
+    // station labels
+    last3Months: 'Son 3 ay',
+    // Privacy sections
+    privacyDataCollected: 'Toplanan Veriler',
+    privacyDataCollectedContent: 'Girdiğiniz dolum kayıtları, bakım etkinlikleri ve tercihler öncelikle cihazınızın yerel depolama alanında (localStorage) saklanır. Google Drive yedekleme özelliğini etkinleştirirseniz bu veriler Google hesabınızın Drive uygulama klasörüne yüklenir; yalnızca sizin erişiminize açıktır. Google OAuth ile giriş yaptığınızda e-posta adresiniz yerel olarak kaydedilir ve hesap bağlantısını kestiğinizde silinir.',
+    privacyDataSharing: 'Veri Paylaşımı',
+    privacyDataSharingContent: "Verileriniz reklam amacıyla kullanılmaz veya üçüncü taraflara satılmaz. Google Drive yedekleme tercihini etkinleştirmeniz durumunda yedek dosyanız Google'ın altyapısında saklanır ve Google'ın gizlilik politikasına tabidir.",
+    privacyThirdParty: 'Üçüncü Taraf Hizmetler',
+    privacyThirdPartyContent: 'OpenStreetMap/Overpass API: "Yakındaki İstasyonlar" özelliği kullanıldığında konum koordinatlarınız Overpass API sunucusuna gönderilir; istasyon listesi alındıktan sonra herhangi bir veri saklanmaz. Leaflet harita görüntüleme için unpkg.com CDN\'inden yüklenir. Google Fonts yazı tipleri için kullanılır. Bu hizmetler kendi gizlilik politikalarına tabidir.',
+    privacyNotifications: 'Bildirimler',
+    privacyNotificationsContent: 'Uygulama, takvim etkinlikleri ve bakım hatırlatmaları için bildirim iznini talep eder. Bildirimler yalnızca cihazınızda yerel olarak oluşturulur; hiçbir sunucuya bağlanmaz. İzni cihaz ayarlarından istediğiniz zaman kapatabilirsiniz.',
+    privacyLocation: 'Konum Verisi',
+    privacyLocationContent: 'Uygulama, "Yakındaki İstasyonlar" özelliği için konum iznini talep eder. Konum koordinatları yalnızca yakın çevredeki yakıt istasyonlarını sorgulamak amacıyla Overpass API\'ye anlık olarak iletilir; cihazda kaydedilmez ve başka herhangi bir amaçla kullanılmaz.',
+    privacyDataDeletion: 'Veri Silme',
+    privacyDataDeletionContent: 'Ayarlar > Tehlikeli Bölge ekranındaki "Tüm Verileri Sil" seçeneği yerel kayıtlarınızı ve Google Drive yedek dosyanızı kalıcı olarak siler. Yalnızca yerel verileri temizlemek için uygulamayı kaldırabilir veya tarayıcı verilerini silebilirsiniz.',
+    privacyChildren: 'Çocukların Gizliliği',
+    privacyChildrenContent: 'Uygulama 13 yaş altı çocuklara yönelik değildir ve bu yaş grubundan bilerek veri toplanmaz.',
+    privacyContact: 'İletişim',
+    privacyContactContent: 'Gizlilik politikasıyla ilgili sorularınız için aria.software.dev@gmail.com adresine ulaşabilirsiniz.',
   },
   en: {
     appName: 'Vitesse - Car Journal',
-    ozet: 'Summary', gecmis: 'History', takvim: 'Calendar', ayarlar: 'Settings',
-    addFuel: 'Add fuel', noEntries: 'No fuel entries yet',
+    ozet: 'Overview', gecmis: 'History', takvim: 'Calendar', ayarlar: 'Settings',
+    addFuel: 'Add fill-up', noEntries: 'No fuel entries yet',
     noEntriesSub: 'Add your first fill-up to start tracking fuel consumption and costs.',
+    // confirm dialog
+    areYouSure: 'Are you sure?',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    // nav
+    navOzet: 'Overview',
+    navGecmis: 'History',
+    navTakvim: 'Calendar',
+    navAyarlar: 'Settings',
+    // event type buttons (short labels for buttons)
+    eventBtnKasko: 'Kasko',
+    eventBtnSigorta: 'Insurance',
+    eventBtnMuayene: 'Inspection',
+    eventBtnBakim: 'Service',
+    eventBtnDiger: 'Other',
+    // currency names
+    currNameLira: 'Lira',
+    currNameDollar: 'Dollar',
+    currNameEuro: 'Euro',
+    // GiderDagilimi
+    giderDagilimi: 'Expense Breakdown',
+    toplam: 'Total',
+    // event types
+    eventKasko: 'Comprehensive Insurance',
+    eventSigorta: 'Third-Party Insurance',
+    eventMuayene: 'Vehicle Inspection',
+    eventBakim: 'Service / Maintenance',
+    eventDiger: 'Other',
+    // fuel types
+    fuelBenzin: 'Gasoline',
+    fuelDizel: 'Diesel',
+    fuelLPG: 'LPG',
+    // ExportSheet
+    exportTitle: 'Export',
+    exportFormat: 'Which format would you like to export?',
+    exportExcelSub: 'Fill-ups and calendar in separate sheets',
+    exportJsonSub: 'Suitable for import, full backup',
+    // ImportSheet
+    importTitle: 'Import',
+    importDesc: 'Select an exported JSON file.',
+    importJsonSub: 'Backup exported from Vitesse',
+    importSuccess: 'Data imported successfully.',
+    importError: 'Invalid file. Please select a JSON file exported from Vitesse.',
+    // Excel headers
+    xlsxDate: 'Date',
+    xlsxKm: 'Odometer',
+    xlsxLiters: 'Liters',
+    xlsxPricePerL: 'Price/L ({c})',
+    xlsxTotal: 'Total ({c})',
+    xlsxFullTank: 'Full Tank',
+    xlsxStation: 'Station',
+    xlsxNote: 'Note',
+    xlsxType: 'Type',
+    xlsxStart: 'Start',
+    xlsxEnd: 'End',
+    xlsxCost: 'Cost ({c})',
+    xlsxSheetFuel: 'Fill-ups',
+    xlsxSheetCalendar: 'Calendar',
+    xlsxYes: 'Yes',
+    xlsxNo: 'No',
+    // LPG sheet
+    lpgTitle: 'LPG Conversion Calculator',
+    lpgMonthlySpend: 'Monthly spend ({c})',
+    lpgMonthlyPlaceholder: 'e.g. 6500',
+    lpgGasolinePrice: 'Gasoline price ({c}/L)',
+    lpgGasolineSub: 'Price from last fill-up',
+    lpgInstallCost: 'Installation cost ({c})',
+    lpgLpgPrice: 'LPG price per liter ({c})',
+    lpgConsumptionDiff: 'Consumption difference (%)',
+    lpgConsumptionDiffSub: 'LPG typically uses 15–20% more',
+    lpgMonthlySaving: 'Monthly saving',
+    lpgYearlySaving: 'Yearly saving',
+    lpgBreakEven: 'Break-even period',
+    lpgNotWorthIt: 'At these prices LPG is more expensive — conversion is not recommended.',
+    lpgDisclaimer: '* Pre-filled values can be changed. Actual savings vary by vehicle and usage.',
+    lpgYear: 'yr',
+    lpgMonth: 'mo',
+    // OzetScreen
+    ozetTitle: 'Overview',
+    ozetSubFills: 'fill-ups',
+    ozetNoEntries: 'No fuel entries yet',
+    ozetNoEntriesSub: 'Add your first fill-up to start tracking fuel consumption and costs.',
+    ozetAddFuel: 'Add fill-up',
+    ozetAvgConsumption: 'Average Consumption',
+    ozetInfoFull: 'Between full tanks · last',
+    ozetInfoFull2: 'fill-ups',
+    ozetInfoMin: 'At least 2 full tanks required',
+    ozetStations: 'Stations',
+    ozetLastPaid: 'Price per liter (last fill-up)',
+    ozetThisMonthSpend: 'This month',
+    ozetPerKm: 'Per km',
+    ozetLastFillup: 'Last fill-up',
+    ozetThisYearSpend: 'This year',
+    ozetAvgPerMonth: 'avg.',
+    ozetPerMonth: '{c}/mo',
+    ozetPerFillAvg: 'avg.',
+    ozetKmPerFill: 'km/fill-up',
+    ozetAllTime: 'all time',
+    ozetToday: 'Today',
+    ozetYesterday: 'Yesterday',
+    ozetDaysAgo: 'days ago',
+    ozetConsumptionTrend: 'Consumption Trend',
+    ozetFilterAll: 'All',
+    ozetFilter3m: '3 mo',
+    ozetFilterYear: 'This year',
+    ozetInsufficientData: 'Not enough data for this period',
+    ozetReminders: 'Reminders',
+    ozetNoReminders: 'No upcoming reminders',
+    ozetNoRemindersSub: 'Add inspection, insurance and other events from the Calendar tab.',
+    ozetKmOverdue: 'km overdue',
+    ozetKmLeft: 'km left',
+    ozetDaysOverdue: 'days overdue',
+    ozetDays: 'days',
+    ozetEvery: 'Every',
+    ozetKm: 'km',
+    // GecmisScreen
+    gecmisTitle: 'History',
+    gecmisLpgBtn: 'LPG Calc',
+    gecmisPriceHistory: 'Price History',
+    gecmisMonthlyConsumption: 'Monthly Consumption',
+    gecmisStationComparison: 'Station Comparison',
+    gecmisStationInfoTooltip: 'Always looks at the last 3 months to reduce inflation bias',
+    gecmisStationCheap: 'CHEAPEST',
+    gecmisAllFills: 'All Fill-ups',
+    gecmisMonthFills: 'This Month\'s Fill-ups',
+    gecmis3mFills: 'Last 3 Months\' Fill-ups',
+    gecmisYearFills: 'This Year\'s Fill-ups',
+    gecmisNoEntries: 'No fuel entries yet',
+    gecmisNoPeriod: 'No entries for this period',
+    gecmisNoEntriesSub: 'Add your first fill-up to start tracking fuel consumption.',
+    gecmisNoPeriodSub: 'No fill-up records in the selected time range.',
+    gecmisDeleteMsg: 'This fill-up record will be permanently deleted.',
+    gecmisFillFull: 'Full',
+    gecmisFillPartial: 'Partial',
+    gecmisFillsCount: 'fill-ups',
+    gecmisFilterAll: 'All',
+    gecmisFilterMonth: 'This month',
+    gecmisFilter3m: 'Last 3 mo',
+    gecmisFilterYear: 'This year',
+    gecmisDateRange3m: 'Last 3 months',
+    gecmisDateRangeYear: 'This year',
+    gecmisSon3Ay: 'Last 3 months',
+    // TakvimScreen
+    takvimTitle: 'Calendar',
+    takvimAdd: 'Add',
+    takvimNoEvents: 'No events yet',
+    takvimNoEventsSub: 'Track inspection, insurance, tires and other reminders here.',
+    takvimAddEvent: 'Add event',
+    takvimOngoing: 'Ongoing',
+    takvimExpired: 'Expired',
+    takvimDeleteMsg: 'This event will be permanently deleted.',
+    takvimToday: 'Today',
+    // NearbyStations
+    nearbyTitle: 'Nearby Stations',
+    nearbyCount: 'stations within 5 km',
+    nearbyLoading: 'Getting location…',
+    nearbyLoadingStations: 'Loading stations…',
+    nearbyError: 'Could not load stations. Check your internet connection.',
+    nearbyLocationError: 'Location access is not supported on this device.',
+    nearbyLocationDenied: 'Could not get location. Please check location permissions.',
+    nearbyRetry: 'Retry',
+    nearbyDirectionsHint: 'Tap the button for directions',
+    nearbyDistance: 'Distance',
+    nearbyDuration: 'Est. Time',
+    nearbyCalculating: 'Calculating…',
+    nearbyCloseRoute: 'Close Route',
+    nearbyGetDirections: 'Get Directions',
+    nearbyFuelStation: 'Fuel Station',
+    // KmReminderSection
+    kmRemindersTitle: 'Odometer Reminders',
+    kmReminderAdd: 'Add',
+    kmReminderEvery: 'Every',
+    kmReminderLast: 'Last:',
+    kmReminderNext: 'Next:',
+    // KmReminderFormModal
+    kmFormEditTitle: 'Edit Reminder',
+    kmFormNewTitle: 'New Odometer Reminder',
+    kmFormLabel: 'Description',
+    kmFormLabelPlaceholder: 'e.g. Oil Change',
+    kmFormInterval: 'Interval (km)',
+    kmFormLastDone: 'Last done (km)',
+    kmFormLabelRequired: 'Description is required',
+    kmFormIntervalRequired: 'Interval km is required',
+    kmFormUpdate: 'Update',
+    kmFormSave: 'Save',
+    // AyarlarScreen
+    ayarlarTitle: 'Settings',
+    ayarlarVehicle: 'Vehicle',
+    ayarlarModel: 'Brand / Model',
+    ayarlarModelPlaceholder: 'e.g. Toyota Corolla',
+    ayarlarTank: 'Tank (L)',
+    ayarlarTankPlaceholder: 'e.g. 55',
+    ayarlarFuelType: 'Fuel Type',
+    ayarlarLanguage: 'Language',
+    ayarlarCurrency: 'Currency',
+    ayarlarTheme: 'Appearance',
+    ayarlarThemeDark: 'Dark',
+    ayarlarThemeLight: 'Light',
+    ayarlarThemeSystem: 'System',
+    ayarlarPrefs: 'Preferences',
+    ayarlarNotifications: 'Notifications',
+    ayarlarNotificationsSub: 'Sends reminders before calendar events expire',
+    ayarlarMinMax: 'Min/Max Markers',
+    ayarlarMinMaxSub: 'Highlight lowest and highest points on charts',
+    ayarlarFeedback: 'Feedback',
+    ayarlarSuggest: 'Share Feedback',
+    ayarlarSuggestSub: 'Send your thoughts and suggestions',
+    ayarlarManualBackup: 'Manual Backup',
+    ayarlarExport: 'Export',
+    ayarlarExportSub: 'Save as Excel or JSON',
+    ayarlarImport: 'Import',
+    ayarlarImportSub: 'Previously exported JSON file',
+    ayarlarDanger: 'Danger Zone',
+    ayarlarReset: 'Reset Data',
+    ayarlarResetSub: 'Records are deleted, sample data is loaded',
+    ayarlarResetMsg: 'All fill-up and calendar records will be deleted and sample data will be loaded. Your vehicle info and preferences are kept.',
+    ayarlarResetConfirm: 'Reset',
+    ayarlarDeleteAll: 'Delete All Data',
+    ayarlarDeleteAllSub: 'Local data and Drive backup are permanently removed',
+    ayarlarDeleteAllMsg: 'All local data and Google Drive backup will be permanently deleted. This cannot be undone.',
+    ayarlarAbout: 'About',
+    ayarlarPrivacy: 'Privacy Policy',
+    ayarlarVersion: 'Version',
+    // Google Drive
+    driveTitle: 'Google Drive Backup',
+    driveSaving: 'Backing up…',
+    driveError: 'Backup failed',
+    driveLastBackup: 'Last backup:',
+    driveNoBackup: 'No backup yet',
+    driveRestore: 'Restore from Drive',
+    driveRestoreSub: 'Current data will be replaced with backup',
+    driveRestoreConfirmTitle: 'Are you sure?',
+    driveRestoreConfirmSub: 'All current data will be deleted',
+    driveRestoreBtn: 'Restore',
+    driveDisconnect: 'Disconnect Account',
+    driveDisconnectSub: 'Disconnect from Google Drive',
+    driveConnect: 'Connect with Google',
+    driveConnectSub: 'Data is backed up automatically',
+    // EntrySheet
+    entryEditTitle: 'Edit fill-up',
+    entryNewTitle: 'New',
+    entryFillupSuffix: 'Fill-up',
+    entryDate: 'Date',
+    entryToday: 'Today',
+    entryYesterday: 'Yesterday',
+    entryKm: 'Odometer',
+    entryLastRecord: 'Last record:',
+    entryTooFew: 'too low?',
+    entryTooMany: 'too high?',
+    entryLiters: 'Liters',
+    entryPricePerL: '{c} / Liter',
+    entryFullTank: 'Full tank',
+    entryFullTankSub: 'Consumption is calculated up to the next full tank.',
+    entryStation: 'Station',
+    entryOptional: '(optional)',
+    entryNote: 'Note',
+    entryNotePlaceholder: 'Long trip, after service…',
+    entryTotal: 'Total',
+    entrySave: 'Save',
+    entryUpdate: 'Update',
+    entryDiscardTitle: 'Discard changes?',
+    entryDiscardSub: 'Entered information will not be saved.',
+    entryDiscardExit: 'Discard',
+    entryDiscardContinue: 'Keep editing',
+    entryCapacityExceeded: 'Exceeds tank capacity',
+    entryDateFuture: 'Future date not allowed',
+    entryKmRequired: 'Odometer reading is required',
+    entryKmTooLow: 'Cannot be lower than previous fill-up (last:',
+    entryLitersRequired: 'Liters are required',
+    entryPriceRequired: 'Price is required',
+    // EventSheet
+    eventEditTitle: 'Edit event',
+    eventNewTitle: 'New event',
+    eventEditSub: 'Edit event details',
+    eventStart: 'Start',
+    eventEnd: 'End',
+    eventDays: 'days',
+    eventEndPast: 'End date is in the past',
+    eventNotifyDays: 'Notify before (days)',
+    eventNotifyInfo: 'Checked every time the app opens. Enable Notifications in Settings to receive alerts.',
+    eventServiceKm: 'Service at km',
+    eventCost: 'Cost',
+    eventNote: 'Note',
+    eventSave: 'Save',
+    eventUpdate: 'Update',
+    eventCustomTypePlaceholder: 'Enter type name…',
+    eventCustomTypeRequired: 'Type name is required',
+    eventEndRequired: 'End date is required',
+    eventEndBeforeStart: 'End date cannot be before start date',
+    eventNotePlaceholderInsurance: 'Policy number, company name…',
+    eventNotePlaceholderService: 'Work performed…',
+    eventNotePlaceholderDefault: 'Note…',
+    // KmPromptModal
+    kmPromptTitle: 'Odometer Reminder',
+    kmPromptSub: 'km service logged. Add a reminder for the next one?',
+    kmPromptInterval: 'Interval (km)',
+    kmPromptNextService: 'Next service:',
+    kmPromptAdd: 'Add Reminder',
+    kmPromptSkip: 'Skip',
+    // FeedbackSheet
+    feedbackTitle: 'Share Feedback',
+    feedbackPlaceholder: 'Write your thoughts and suggestions…',
+    feedbackSend: 'Send',
+    // AreaChart
+    chartInsufficient: 'Insufficient data',
+    // GizlilikScreen
+    privacyTitle: 'Privacy Policy',
+    privacyLastUpdate: 'Last updated: May 2026',
+    privacyIntro: 'Vitesse is a personal app for tracking your vehicle\'s fuel fill-ups and maintenance events. Your privacy is our priority.',
+    // station labels
+    last3Months: 'Last 3 months',
+    // Privacy sections
+    privacyDataCollected: 'Data Collected',
+    privacyDataCollectedContent: 'Your fill-up records, maintenance events, and preferences are stored locally on your device (localStorage). If you enable Google Drive backup, this data is uploaded to your Google account\'s Drive app folder and is only accessible by you. When you sign in with Google OAuth, your email address is saved locally and deleted when you disconnect your account.',
+    privacyDataSharing: 'Data Sharing',
+    privacyDataSharingContent: 'Your data is not used for advertising or sold to third parties. If you enable Google Drive backup, your backup file is stored on Google\'s infrastructure and is subject to Google\'s privacy policy.',
+    privacyThirdParty: 'Third-Party Services',
+    privacyThirdPartyContent: 'OpenStreetMap/Overpass API: When you use the "Nearby Stations" feature, your location coordinates are sent to the Overpass API server; no data is retained after the station list is returned. Leaflet is loaded from unpkg.com CDN for map rendering. Google Fonts is used for typography. These services are subject to their own privacy policies.',
+    privacyNotifications: 'Notifications',
+    privacyNotificationsContent: 'The app requests notification permission for calendar events and maintenance reminders. Notifications are generated locally on your device only; no server connection is made. You can disable this permission in your device settings at any time.',
+    privacyLocation: 'Location Data',
+    privacyLocationContent: 'The app requests location permission for the "Nearby Stations" feature. Your location coordinates are sent instantly to the Overpass API solely to query nearby fuel stations; they are not stored on the device and are not used for any other purpose.',
+    privacyDataDeletion: 'Data Deletion',
+    privacyDataDeletionContent: 'The "Delete All Data" option under Settings > Danger Zone permanently deletes your local records and Google Drive backup file. To clear only local data, you can uninstall the app or clear browser data.',
+    privacyChildren: 'Children\'s Privacy',
+    privacyChildrenContent: 'The app is not intended for children under 13 and does not knowingly collect data from that age group.',
+    privacyContact: 'Contact',
+    privacyContactContent: 'For questions about this privacy policy, you can reach us at aria.software.dev@gmail.com.',
   },
 };
 const LangCtx = createContext('tr');
 const useLang = () => useContext(LangCtx);
+const CurrencyCtx = createContext('₺');
+const useCurrency = () => useContext(CurrencyCtx);
 const ThemeCtx = createContext('dark');
 const useTheme = () => useContext(ThemeCtx);
-const useT = () => { const lang = useLang(); return (key) => (TRANSLATIONS[lang] || TRANSLATIONS.tr)[key] || key; };
+const useT = () => {
+  const lang = useLang();
+  const currency = useCurrency();
+  return (key) => ((TRANSLATIONS[lang] || TRANSLATIONS.tr)[key] ?? key).replace(/\{c\}/g, currency);
+};
+const useFmt = () => {
+  const lang = useLang();
+  const locale = lang === 'en' ? 'en-US' : 'tr-TR';
+  return {
+    fmt: (n, d = 2) => fmt(n, d, locale),
+    fmtInt: (n) => fmtInt(n, locale),
+    months: MONTHS_BY_LANG[lang] || TR_MONTHS,
+    monthsFull: MONTHS_FULL_BY_LANG[lang] || TR_MONTHS_FULL,
+    dayMon: (s) => dayMon(s, lang),
+    monthLabel: (yyyyMM) => monthLabel(yyyyMM, lang),
+  };
+};
 
 /* ── Confirm ───────────────────────────────────────────── */
 const ConfirmCtx = createContext(null);
 function ConfirmProvider({ children }) {
   const theme = useTheme();
+  const t = useT();
   const dark = theme !== 'light';
-  const [state, setState] = useState({ open: false, message: '', onConfirm: null, confirmLabel: 'Sil' });
-  const ask = (message, onConfirm, confirmLabel = 'Sil') => setState({ open: true, message, onConfirm, confirmLabel });
+  const [state, setState] = useState({ open: false, message: '', onConfirm: null, confirmLabel: null });
+  const ask = (message, onConfirm, confirmLabel = null) => setState({ open: true, message, onConfirm, confirmLabel });
   const close = () => setState((s) => ({ ...s, open: false }));
   const modalBg    = dark ? '#22222e' : '#ffffff';
   const modalBorder= dark ? '1px solid #2e2e3c' : '1px solid rgba(0,0,0,0.09)';
@@ -329,11 +1009,11 @@ function ConfirmProvider({ children }) {
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Icon.Trash s={24} />
             </div>
-            <h2 style={{ marginBottom: 8, color: titleColor }}>Emin misin?</h2>
+            <h2 style={{ marginBottom: 8, color: titleColor }}>{t('areYouSure')}</h2>
             <p style={{ fontSize: 14, color: msgColor, lineHeight: 1.6, margin: '0 0 22px' }}>{state.message}</p>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn" style={{ flex: 1, justifyContent: 'center', borderRadius: 12, padding: '13px 12px', fontSize: 14, fontWeight: 500, ...cancelStyle }} onClick={close}>İptal</button>
-              <button className="btn" style={{ flex: 1, justifyContent: 'center', borderRadius: 12, padding: '13px 12px', fontSize: 14, fontWeight: 600, border: 'none', ...dangerStyle }} onClick={() => { state.onConfirm(); close(); }}>{state.confirmLabel}</button>
+              <button className="btn" style={{ flex: 1, justifyContent: 'center', borderRadius: 12, padding: '13px 12px', fontSize: 14, fontWeight: 500, ...cancelStyle }} onClick={close}>{t('cancel')}</button>
+              <button className="btn" style={{ flex: 1, justifyContent: 'center', borderRadius: 12, padding: '13px 12px', fontSize: 14, fontWeight: 600, border: 'none', ...dangerStyle }} onClick={() => { state.onConfirm(); close(); }}>{state.confirmLabel ?? t('delete')}</button>
             </div>
           </div>
         </div>
@@ -369,7 +1049,9 @@ function averageConsumption(pts) {
 /* ── Area Chart ────────────────────────────────────────── */
 function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false, labelOffset = 12, padLeft = 23, curveOffset = 0 }) {
   const [active, setActive] = useState(null);
-  if (!data || data.length < 2) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-2)', fontSize: 14 }}>Yetersiz veri</div>;
+  const t = useT();
+  const { months: MONTHS } = useFmt();
+  if (!data || data.length < 2) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-2)', fontSize: 14 }}>{t('chartInsufficient')}</div>;
   const W = 320, H = 160;
   const pad = { t: 12, r: 14, b: 8, l: padLeft };
   const cW = W - pad.l - pad.r;
@@ -459,7 +1141,7 @@ function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false, 
               const tyAbove = ys[i] - tooltipH - 10;
               const ty = tyAbove < pad.t ? ys[i] + 10 : tyAbove;
               const d = parseISO(labels[i]);
-              const dateStr = d ? `${d.getDate()} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][d.getMonth()]}` : labels[i];
+              const dateStr = d ? `${d.getDate()} ${MONTHS[d.getMonth()]}` : labels[i];
               return (
                 <g>
                   <rect x={tx} y={ty} width={tooltipW} height={tooltipH} rx="8" fill="var(--surface-2)" stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.4" />
@@ -479,6 +1161,9 @@ function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false, 
 /* ── Gider Dağılımı ────────────────────────────────────── */
 function GiderDagilimi() {
   const store = useStore();
+  const t = useT();
+  const currency = useCurrency();
+  const { fmtInt } = useFmt();
   const currentYear = useMemo(() => new Date().getFullYear().toString(), []);
   const [year, setYear] = useState(currentYear);
 
@@ -498,8 +1183,8 @@ function GiderDagilimi() {
       .forEach(e => { evCosts[e.type] = (evCosts[e.type] || 0) + e.cost; });
     const COLORS = { Yakıt: '#F4AF2D', Kasko: '#3b82f6', Sigorta: '#ec4899', Muayene: '#14b8a6', Bakım: '#22c55e', Diğer: '#f97316' };
     const raw = [];
-    if (yakitTotal > 0) raw.push({ label: 'Yakıt', value: yakitTotal, color: '#F4AF2D' });
-    Object.entries(evCosts).forEach(([t, v]) => raw.push({ label: t, value: v, color: COLORS[t] || '#a78bfa' }));
+    if (yakitTotal > 0) raw.push({ label: 'fuel', value: yakitTotal, color: '#F4AF2D' });
+    Object.entries(evCosts).forEach(([tp, v]) => raw.push({ label: tp, value: v, color: COLORS[tp] || '#a78bfa' }));
     raw.sort((a, b) => b.value - a.value);
     const total = raw.reduce((s, i) => s + i.value, 0);
     if (total === 0) return { items: [], total: 0 };
@@ -519,7 +1204,7 @@ function GiderDagilimi() {
   return (
     <div className="chart-card" style={{ marginTop: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-2)' }}>Gider Dağılımı</span>
+        <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-2)' }}>{t('giderDagilimi')}</span>
         <select value={year} onChange={e => setYear(e.target.value)} style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 8px', fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-sans)', cursor: 'pointer', outline: 'none' }}>
           {years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
@@ -534,14 +1219,14 @@ function GiderDagilimi() {
               transform="rotate(-90 70 70)"
             />
           ))}
-          <text x={70} y={65} textAnchor="middle" fontSize="10" fill="var(--text-dim)" fontFamily="Geist, sans-serif">Toplam</text>
-          <text x={70} y={82} textAnchor="middle" fontSize="15" fontWeight="700" fill="var(--text)" fontFamily="Geist Mono, monospace">{fmtInt(Math.round(total))} ₺</text>
+          <text x={70} y={65} textAnchor="middle" fontSize="10" fill="var(--text-dim)" fontFamily="Geist, sans-serif">{t('toplam')}</text>
+          <text x={70} y={82} textAnchor="middle" fontSize="15" fontWeight="700" fill="var(--text)" fontFamily="Geist Mono, monospace">{fmtInt(Math.round(total))} {currency}</text>
         </svg>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {items.map((seg, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 10, height: 10, borderRadius: 3, background: seg.color, flexShrink: 0 }} />
-              <div style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{seg.label}</div>
+              <div style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{seg.label === 'fuel' ? t('fuelBenzin') : seg.label === 'Kasko' ? t('eventKasko') : seg.label === 'Sigorta' ? t('eventSigorta') : seg.label === 'Muayene' ? t('eventMuayene') : seg.label === 'Bakım' ? t('eventBakim') : seg.label === 'Diğer' ? t('eventDiger') : seg.label}</div>
               <div style={{ fontSize: 12, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>{Math.round(seg.pct * 100)}%</div>
             </div>
           ))}
@@ -554,7 +1239,9 @@ function GiderDagilimi() {
 /* ── Aylık Bar Grafik ──────────────────────────────────── */
 function AylikBarChart() {
   const store = useStore();
-  const [mode, setMode] = useState('₺');
+  const currency = useCurrency();
+  const { fmt: fmtL, fmtInt: fmtIntL, months: MONTHS_LOC, monthsFull: MONTHS_FULL_LOC } = useFmt();
+  const [mode, setMode] = useState('cost');
   const [active, setActive] = useState(null);
   const currentYear = useMemo(() => new Date().getFullYear().toString(), []);
   const [year, setYear] = useState(currentYear);
@@ -580,6 +1267,7 @@ function AylikBarChart() {
   ), [store.entries, year, lastMonthIdx]);
 
   const values = monthData.map(d => mode === 'L' ? d.liters : d.spend);
+
   const hasAny = values.some(v => v > 0);
   if (!hasAny) return null;
 
@@ -605,10 +1293,10 @@ function AylikBarChart() {
     <div className="chart-card" style={{ marginBottom: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', gap: 3 }}>
-          {['₺', 'L'].map(m => (
+          {[['cost', currency], ['L', 'L']].map(([m, label]) => (
             <button key={m} onClick={() => { setMode(m); setActive(null); }}
               className={`chip-btn${mode === m ? ' active' : ''}`}
-              style={{ padding: '3px 10px', fontSize: 12 }}>{m}</button>
+              style={{ padding: '3px 10px', fontSize: 12 }}>{label}</button>
           ))}
         </div>
         <select value={year} onChange={e => { setYear(e.target.value); setActive(null); }}
@@ -622,7 +1310,7 @@ function AylikBarChart() {
           <g key={i}>
             <line x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray="3 5" strokeOpacity="0.7" />
             <text x={pad.l - 4} y={y + 3.5} fontSize="9" textAnchor="end" fill="var(--color-chart-axis)" fontFamily="Geist Mono, monospace">
-              {mode === '₺' && val >= 1000 ? `${Math.round(val / 1000)}k` : Math.round(val)}
+              {mode === 'cost' && val >= 1000 ? `${Math.round(val / 1000)}k` : Math.round(val)}
             </text>
           </g>
         ))}
@@ -648,10 +1336,10 @@ function AylikBarChart() {
               <text x={x + barW / 2} y={H - 5} fontSize="9" textAnchor="middle"
                 fill={isActive ? 'var(--accent)' : 'var(--color-chart-axis)'}
                 fontFamily="Geist, sans-serif" fontWeight={isActive ? '600' : '400'}>
-                {TR_MONTHS[i]}
+                {MONTHS_LOC[i]}
               </text>
               {isActive && hasVal && (() => {
-                const ttW = mode === '₺' ? 88 : 68;
+                const ttW = mode === 'cost' ? 88 : 68;
                 const ttH = 34;
                 const tx = Math.min(Math.max(x + barW / 2 - ttW / 2, pad.l), W - pad.r - ttW);
                 const ty = Math.max(y - ttH - 6, pad.t);
@@ -660,10 +1348,10 @@ function AylikBarChart() {
                     <rect x={tx} y={ty} width={ttW} height={ttH} rx="7"
                       fill="var(--surface-2)" stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.4" />
                     <text x={tx + ttW / 2} y={ty + 13} fontSize="11" textAnchor="middle"
-                      fill="var(--text-2)" fontFamily="Geist, sans-serif">{TR_MONTHS_FULL[i]}</text>
+                      fill="var(--text-2)" fontFamily="Geist, sans-serif">{MONTHS_FULL_LOC[i]}</text>
                     <text x={tx + ttW / 2} y={ty + 27} fontSize="12" fontWeight="600" textAnchor="middle"
                       fill="var(--accent)" fontFamily="Geist Mono, monospace">
-                      {mode === 'L' ? `${fmt(val, 1)} L` : `${fmtInt(Math.round(val))} ₺`}
+                      {mode === 'L' ? `${fmtL(val, 1)} L` : `${fmtIntL(Math.round(val))} ${currency}`}
                     </text>
                   </g>
                 );
@@ -679,6 +1367,7 @@ function AylikBarChart() {
 /* ── Dışa Aktarma Seçimi ───────────────────────────────── */
 function ExportSheet({ onClose }) {
   const store = useStore();
+  const t = useT();
 
   const exportJSON = () => {
     const blob = new Blob(
@@ -699,25 +1388,25 @@ function ExportSheet({ onClose }) {
     const dolumlar = [...store.entries]
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
       .map(e => ({
-        'Tarih': e.dateISO,
-        'Km': e.km,
-        'Litre': e.liters,
-        'Fiyat/L (₺)': e.pricePerL,
-        'Toplam (₺)': parseFloat((e.liters * e.pricePerL).toFixed(2)),
-        'Tam Depo': e.full ? 'Evet' : 'Hayır',
-        'İstasyon': e.station || '',
-        'Not': e.note || '',
+        [t('xlsxDate')]: e.dateISO,
+        [t('xlsxKm')]: e.km,
+        [t('xlsxLiters')]: e.liters,
+        [t('xlsxPricePerL')]: e.pricePerL,
+        [t('xlsxTotal')]: parseFloat((e.liters * e.pricePerL).toFixed(2)),
+        [t('xlsxFullTank')]: e.full ? t('xlsxYes') : t('xlsxNo'),
+        [t('xlsxStation')]: e.station || '',
+        [t('xlsxNote')]: e.note || '',
       }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dolumlar), 'Dolumlar');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dolumlar), t('xlsxSheetFuel'));
 
     const takvim = (store.events || []).map(e => ({
-      'Tür': e.type,
-      'Başlangıç': e.startISO || '',
-      'Bitiş': e.endISO || '',
-      'Maliyet (₺)': e.cost ?? '',
-      'Not': e.note || '',
+      [t('xlsxType')]: e.type,
+      [t('xlsxStart')]: e.startISO || '',
+      [t('xlsxEnd')]: e.endISO || '',
+      [t('xlsxCost')]: e.cost ?? '',
+      [t('xlsxNote')]: e.note || '',
     }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(takvim.length ? takvim : [{}]), 'Takvim');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(takvim.length ? takvim : [{}]), t('xlsxSheetCalendar'));
 
     XLSX.writeFile(wb, `vitesse-${todayISO()}.xlsx`);
     onClose();
@@ -728,11 +1417,11 @@ function ExportSheet({ onClose }) {
       <div className="modal compact" onClick={e => e.stopPropagation()}>
         <div className="modal-handle" />
         <div className="modal-head">
-          <h2>Dışa Aktar</h2>
+          <h2>{t('exportTitle')}</h2>
           <button className="btn-icon" onClick={onClose}><Icon.X /></button>
         </div>
         <p style={{ fontSize: 13, color: 'var(--text-2)', margin: '0 0 16px' }}>
-          Hangi formatta dışa aktarmak istiyorsun?
+          {t('exportFormat')}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button
@@ -744,7 +1433,7 @@ function ExportSheet({ onClose }) {
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>Excel (.xlsx)</div>
-              <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>Dolumlar ve takvim ayrı sekmelerde</div>
+              <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>{t('exportExcelSub')}</div>
             </div>
           </button>
           <button
@@ -756,7 +1445,7 @@ function ExportSheet({ onClose }) {
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>JSON (.json)</div>
-              <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>İçe aktarma için uygun, tam yedek</div>
+              <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>{t('exportJsonSub')}</div>
             </div>
           </button>
         </div>
@@ -768,6 +1457,7 @@ function ExportSheet({ onClose }) {
 
 function ImportSheet({ onClose }) {
   const store = useStore();
+  const t = useT();
   const importRef = useRef(null);
   const [importError, setImportError] = useState('');
   const [importSuccess, setImportSuccess] = useState(false);
@@ -786,7 +1476,7 @@ function ImportSheet({ onClose }) {
         setImportSuccess(true);
         setTimeout(() => { setImportSuccess(false); onClose(); }, 2000);
       } catch {
-        setImportError('Geçersiz dosya. Lütfen dışa aktarılan bir JSON dosyası seçin.');
+        setImportError(t('importError'));
       }
     };
     reader.readAsText(file);
@@ -798,11 +1488,11 @@ function ImportSheet({ onClose }) {
       <div className="modal compact" onClick={e => e.stopPropagation()}>
         <div className="modal-handle" />
         <div className="modal-head">
-          <h2>İçe Aktar</h2>
+          <h2>{t('importTitle')}</h2>
           <button className="btn-icon" onClick={onClose}><Icon.X /></button>
         </div>
         <p style={{ fontSize: 13, color: 'var(--text-2)', margin: '0 0 16px' }}>
-          Dışa aktarılan JSON dosyasını seç.
+          {t('importDesc')}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button
@@ -814,12 +1504,12 @@ function ImportSheet({ onClose }) {
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>JSON (.json)</div>
-              <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>Vitesse uygulamasından dışa aktarılan yedek</div>
+              <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>{t('importJsonSub')}</div>
             </div>
           </button>
         </div>
         <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
-        {importSuccess && <div style={{ fontSize: 12, color: 'var(--positive)', marginTop: 12 }}>Veriler başarıyla içe aktarıldı.</div>}
+        {importSuccess && <div style={{ fontSize: 12, color: 'var(--positive)', marginTop: 12 }}>{t('importSuccess')}</div>}
         {importError && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 12 }}>{importError}</div>}
         <div style={{ height: 4 }} />
       </div>
@@ -830,6 +1520,9 @@ function ImportSheet({ onClose }) {
 /* ── LPG Hesaplama ─────────────────────────────────────── */
 function LpgSheet({ onClose }) {
   const store = useStore();
+  const t = useT();
+  const currency = useCurrency();
+  const { fmt: fmtL } = useFmt();
 
   const defaults = useMemo(() => {
     const entries = [...store.entries].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
@@ -866,20 +1559,20 @@ function LpgSheet({ onClose }) {
       <div className="modal" onClick={e => e.stopPropagation()} style={{ paddingBottom: 28 }}>
         <div className="modal-handle" />
         <div className="modal-head">
-          <h2>LPG Dönüşüm Hesabı</h2>
+          <h2>{t('lpgTitle')}</h2>
           <button className="btn-icon" onClick={onClose}><Icon.X /></button>
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <div className="label">Aylık tüketim (₺)</div>
-          <input className="input" type="number" inputMode="decimal" value={monthlyVal} onChange={e => setMonthlyVal(e.target.value)} placeholder="örn. 6500" />
+          <div className="label">{t('lpgMonthlySpend')}</div>
+          <input className="input" type="number" inputMode="decimal" value={monthlyVal} onChange={e => setMonthlyVal(e.target.value)} placeholder={t('lpgMonthlyPlaceholder')} />
         </div>
 
         {[
-          { label: 'Benzin fiyatı (₺/L)', sub: 'Son dolum fiyatı', val: benzinFiyat, set: setBenzinFiyat, placeholder: 'örn. 65.00' },
-          { label: 'Montaj maliyeti (₺)', sub: null, val: montaj, set: setMontaj, placeholder: 'örn. 30000' },
-          { label: 'LPG litre fiyatı (₺)', sub: null, val: lpgFiyat, set: setLpgFiyat, placeholder: 'örn. 30.00' },
-          { label: 'Tüketim farkı (%)', sub: 'LPG genelde %15–20 fazla tüketir', val: fark, set: setFark, placeholder: '17' },
+          { label: t('lpgGasolinePrice'), sub: t('lpgGasolineSub'), val: benzinFiyat, set: setBenzinFiyat, placeholder: 'e.g. 65.00' },
+          { label: t('lpgInstallCost'), sub: null, val: montaj, set: setMontaj, placeholder: 'e.g. 30000' },
+          { label: t('lpgLpgPrice'), sub: null, val: lpgFiyat, set: setLpgFiyat, placeholder: 'e.g. 30.00' },
+          { label: t('lpgConsumptionDiff'), sub: t('lpgConsumptionDiffSub'), val: fark, set: setFark, placeholder: '17' },
         ].map(({ label, sub, val, set, placeholder }) => (
           <div key={label} style={{ marginBottom: 12 }}>
             <div className="label" style={{ marginBottom: sub ? 2 : 6 }}>{label}</div>
@@ -899,30 +1592,30 @@ function LpgSheet({ onClose }) {
             {result.months ? (() => {
               const yil = Math.floor(result.months / 12);
               const ay = result.months % 12;
-              const amoriStr = yil > 0 && ay > 0 ? `${yil} yıl ${ay} ay` : yil > 0 ? `${yil} yıl` : `${ay} ay`;
+              const amoriStr = yil > 0 && ay > 0 ? `${yil} ${t('lpgYear')} ${ay} ${t('lpgMonth')}` : yil > 0 ? `${yil} ${t('lpgYear')}` : `${ay} ${t('lpgMonth')}`;
               return (<>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
                 <div>
-                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 2 }}>Aylık tasarruf</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--positive)', fontFamily: 'var(--font-mono)' }}>{fmt(result.saving, 0)} ₺</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 2 }}>{t('lpgMonthlySaving')}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--positive)', fontFamily: 'var(--font-mono)' }}>{fmtL(result.saving, 0)} {currency}</div>
                 </div>
                 <div style={{ width: 1, height: 36, background: 'var(--text-dim)', alignSelf: 'center', opacity: 0.4 }} />
                 <div>
-                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 2 }}>Yıllık tasarruf</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--positive)', fontFamily: 'var(--font-mono)' }}>{fmt(result.saving * 12, 0)} ₺</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 2 }}>{t('lpgYearlySaving')}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--positive)', fontFamily: 'var(--font-mono)' }}>{fmtL(result.saving * 12, 0)} {currency}</div>
                 </div>
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-2)' }}>Amorti süresi: <b style={{ color: 'var(--text)' }}>{amoriStr}</b></div>
+              <div style={{ fontSize: 13, color: 'var(--text-2)' }}>{t('lpgBreakEven')}: <b style={{ color: 'var(--text)' }}>{amoriStr}</b></div>
             </>);
             })() : (
-              <div style={{ fontSize: 13, color: 'var(--negative)' }}>Bu fiyatlarla LPG daha pahalıya geliyor, dönüşüm tavsiye edilmez.</div>
+              <div style={{ fontSize: 13, color: 'var(--negative)' }}>{t('lpgNotWorthIt')}</div>
             )}
           </div>
           );
         })()}
 
         <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 14, lineHeight: 1.5 }}>
-          * Otomatik doldurulan değerler değiştirilebilir. Gerçek tasarruf araca ve kullanıma göre değişir.
+          {t('lpgDisclaimer')}
         </div>
       </div>
     </div>
@@ -958,6 +1651,7 @@ const makeUserIcon = (heading) => {
 
 function NearbyStationsSheet({ onClose }) {
   const theme = useContext(ThemeCtx);
+  const t = useT();
   const [status, setStatus] = useState('loading');
   const [stations, setStations] = useState([]);
   const [userPos, setUserPos] = useState(null);
@@ -1007,7 +1701,7 @@ function NearbyStationsSheet({ onClose }) {
           const data = await r.json();
           clearTimeout(timer);
           const list = (data.elements || [])
-            .map(n => ({ id: n.id, lat: n.lat, lon: n.lon, name: n.tags?.name || n.tags?.brand || n.tags?.operator || 'Yakıt İstasyonu', dist: haversineKm(lat, lon, n.lat, n.lon) }))
+            .map(n => ({ id: n.id, lat: n.lat, lon: n.lon, name: n.tags?.name || n.tags?.brand || n.tags?.operator || t('nearbyFuelStation'), dist: haversineKm(lat, lon, n.lat, n.lon) }))
             .sort((a, b) => a.dist - b.dist).slice(0, 20);
           retryCountRef.current = 0;
           setStations(list);
@@ -1024,13 +1718,13 @@ function NearbyStationsSheet({ onClose }) {
         setTimeout(() => { stationsFetchedRef.current = false; }, 2000);
       } else {
         setStatus('error');
-        setErrMsg('İstasyonlar yüklenemedi. İnternet bağlantısını kontrol edin.');
+        setErrMsg(t('nearbyError'));
       }
     })();
   };
 
   useEffect(() => {
-    if (!navigator.geolocation) { setStatus('error'); setErrMsg('Konum erişimi bu cihazda desteklenmiyor.'); return; }
+    if (!navigator.geolocation) { setStatus('error'); setErrMsg(t('nearbyLocationError')); return; }
 
     // 1. Cache → anında harita + istasyon isteği
     try {
@@ -1070,7 +1764,7 @@ function NearbyStationsSheet({ onClose }) {
         userMarkerRef.current?.setLatLng([lat, lon]);
         doFetch(lat, lon);
       },
-      () => { if (!stationsFetchedRef.current) { setStatus('error'); setErrMsg('Konum alınamadı. Lütfen konum iznini kontrol edin.'); } },
+      () => { if (!stationsFetchedRef.current) { setStatus('error'); setErrMsg(t('nearbyLocationDenied')); } },
       { enableHighAccuracy: true }
     );
 
@@ -1160,8 +1854,8 @@ function NearbyStationsSheet({ onClose }) {
           <div style={{ width: 38, height: 4, background: 'var(--text-dim)', borderRadius: 2, margin: '0 auto 12px' }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Yakındaki İstasyonlar</h2>
-              {status === 'ok' && <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 1 }}>{stations.length} istasyon · 5 km içinde</div>}
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--text)' }}>{t('nearbyTitle')}</h2>
+              {status === 'ok' && <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 1 }}>{stations.length} {t('nearbyCount')}</div>}
             </div>
             <button className="btn-icon" onClick={onClose}><Icon.X /></button>
           </div>
@@ -1170,19 +1864,19 @@ function NearbyStationsSheet({ onClose }) {
         <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
           {status === 'loading' && !mapTrigger && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-2)', fontSize: 14, background: 'var(--bg)' }}>
-              Konum alınıyor…
+              {t('nearbyLoading')}
             </div>
           )}
           {status === 'loading' && mapTrigger && (
             <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 999, background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 20, padding: '6px 14px', fontSize: 12, color: 'var(--text-2)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', whiteSpace: 'nowrap' }}>
-              İstasyonlar yükleniyor…
+              {t('nearbyLoadingStations')}
             </div>
           )}
           {status === 'error' && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '0 32px', textAlign: 'center', background: 'var(--bg)' }}>
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               <span style={{ fontSize: 14, color: 'var(--negative)' }}>{errMsg}</span>
-              <button className="btn btn-accent" style={{ fontSize: 13, padding: '9px 20px' }} onClick={() => { retryCountRef.current = 0; stationsFetchedRef.current = false; setStatus('loading'); setErrMsg(''); }}>Tekrar Dene</button>
+              <button className="btn btn-accent" style={{ fontSize: 13, padding: '9px 20px' }} onClick={() => { retryCountRef.current = 0; stationsFetchedRef.current = false; setStatus('loading'); setErrMsg(''); }}>{t('nearbyRetry')}</button>
             </div>
           )}
           <div ref={mapRef} className={theme === 'dark' ? 'map-dark' : ''} style={{ width: '100%', height: '100%' }} />
@@ -1231,8 +1925,8 @@ function NearbyStationsSheet({ onClose }) {
                 <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 1 }}>
                   {route && route !== 'loading' && route !== 'error'
-                    ? `${route.distKm.toFixed(1)} km · ~${route.durationMin} dk`
-                    : 'Yol tarifi almak için butona bas'}
+                    ? `${route.distKm.toFixed(1)} km · ~${route.durationMin} min`
+                    : t('nearbyDirectionsHint')}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -1243,24 +1937,24 @@ function NearbyStationsSheet({ onClose }) {
                   <Icon.MapPin s={13} /> Maps
                 </button>
                 {route === 'loading'
-                  ? <span style={{ fontSize: 12, color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>Hesaplanıyor…</span>
+                  ? <span style={{ fontSize: 12, color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>{t('nearbyCalculating')}</span>
                   : route === 'error'
-                  ? <button className="btn btn-accent" style={{ padding: '8px 13px', fontSize: 13 }} onClick={() => drawRoute(selected)}>Tekrar Dene</button>
+                  ? <button className="btn btn-accent" style={{ padding: '8px 13px', fontSize: 13 }} onClick={() => drawRoute(selected)}>{t('nearbyRetry')}</button>
                   : route
-                  ? <button style={{ padding: '7px 12px', fontSize: 12, background: 'none', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-2)', cursor: 'pointer' }} onClick={clearRoute}>Rotayı Kapat</button>
-                  : <button className="btn btn-accent" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => drawRoute(selected)}>Yol Tarifi</button>
+                  ? <button style={{ padding: '7px 12px', fontSize: 12, background: 'none', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-2)', cursor: 'pointer' }} onClick={clearRoute}>{t('nearbyCloseRoute')}</button>
+                  : <button className="btn btn-accent" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => drawRoute(selected)}>{t('nearbyGetDirections')}</button>
                 }
               </div>
             </div>
             {route && route !== 'loading' && route !== 'error' && (
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1, padding: '9px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 2 }}>Mesafe</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 2 }}>{t('nearbyDistance')}</div>
                   <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{route.distKm.toFixed(1)} km</div>
                 </div>
                 <div style={{ flex: 1, padding: '9px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 2 }}>Tahmini Süre</div>
-                  <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{route.durationMin} dk</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 2 }}>{t('nearbyDuration')}</div>
+                  <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{route.durationMin} min</div>
                 </div>
               </div>
             )}
@@ -1275,7 +1969,10 @@ function OzetScreen({ onOpenNearby }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const [consFilter, setConsFilter] = useState('all');
   const store = useStore();
+  const currency = useCurrency();
   const theme = useTheme();
+  const t = useT();
+  const { fmt: fmtL, fmtInt: fmtIntL } = useFmt();
   const myEntries = useMemo(() => [...store.entries].sort((a, b) => b.dateISO.localeCompare(a.dateISO)), [store.entries]);
   const consPts = useMemo(() => consumptionPoints(store.entries), [store.entries]);
   const avgCons = useMemo(() => averageConsumption(consPts), [consPts]);
@@ -1366,11 +2063,11 @@ function OzetScreen({ onOpenNearby }) {
     <div>
       <div className="title-row">
         <div className="title-block">
-          <h1>Özet</h1>
+          <h1>{t('ozetTitle')}</h1>
           <div className="sub">
             {store.prefs?.vehicleModel
-              ? `${store.prefs.vehicleModel} · ${myEntries.length} dolum kaydı`
-              : `${myEntries.length} dolum kaydı`}
+              ? `${store.prefs.vehicleModel} · ${myEntries.length} ${t('ozetSubFills')}`
+              : `${myEntries.length} ${t('ozetSubFills')}`}
           </div>
         </div>
       </div>
@@ -1378,9 +2075,9 @@ function OzetScreen({ onOpenNearby }) {
       {myEntries.length === 0 ? (
         <EmptyState
           icon={<Icon.Fuel s={28} />}
-          title="Henüz dolum kaydı yok"
-          sub="İlk dolumunu ekleyerek yakıt tüketimini ve harcamalarını takip etmeye başla."
-          action={<><Icon.Plus s={14} /> Dolum ekle</>}
+          title={t('ozetNoEntries')}
+          sub={t('ozetNoEntriesSub')}
+          action={<><Icon.Plus s={14} /> {t('ozetAddFuel')}</>}
           onAction={() => document.querySelector('.fab')?.click()}
         />
       ) : <>
@@ -1388,9 +2085,9 @@ function OzetScreen({ onOpenNearby }) {
       <div className="hero">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
           <div>
-            <span className="eyebrow">Ortalama Tüketim</span>
+            <span className="eyebrow">{t('ozetAvgConsumption')}</span>
             <div className="hero-big-row">
-              <span className="hero-big">{avgCons !== null ? fmt(animAvgCons, 1) : '—'}</span>
+              <span className="hero-big">{avgCons !== null ? fmtL(animAvgCons, 1) : '—'}</span>
               <span className="hero-unit">L/100km</span>
               <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'flex-end', marginBottom: 3, marginLeft: 6 }}>
                 <button onClick={() => setInfoOpen(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>
@@ -1398,7 +2095,7 @@ function OzetScreen({ onOpenNearby }) {
                 </button>
                 {infoOpen && <>
                   <div onClick={() => setInfoOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9 }} />
-                  <div style={{ position: 'absolute', left: 0, top: 22, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10, transform: 'translateX(-30%)' }}>{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
+                  <div style={{ position: 'absolute', left: 0, top: 22, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10, transform: 'translateX(-30%)' }}>{consPts.length >= 2 ? `${t('ozetInfoFull')} ${consPts.length} ${t('ozetInfoFull2')}` : t('ozetInfoMin')}</div>
                 </>}
               </div>
             </div>
@@ -1407,17 +2104,17 @@ function OzetScreen({ onOpenNearby }) {
             <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 10px rgba(0,0,0,0.25)', color: 'var(--accent-ink)' }}>
               <Icon.MapPin s={19} />
             </div>
-            İstasyonlar
+            {t('ozetStations')}
           </button>
         </div>
 
         <div className="tank-row">
-          <span className="label">Son dolumda ödenen</span>
+          <span className="label">{t('ozetLastPaid')}</span>
           <span className="value" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {lastPrice ? <><span className="num">{fmt(lastPrice, 2)}</span><span className="u">₺/L</span></> : <span className="num">—</span>}
+            {lastPrice ? <><span className="num">{fmtL(lastPrice, 2)}</span><span className="u">{currency}/L</span></> : <span className="num">—</span>}
             {priceDiff !== null && (
               <span style={{ fontSize: 12, fontWeight: 600, color: priceDiff > 0 ? 'var(--negative)' : 'var(--positive)' }}>
-                {priceDiff > 0 ? '↑' : '↓'} {fmt(Math.abs(priceDiff), 2)}
+                {priceDiff > 0 ? '↑' : '↓'} {fmtL(Math.abs(priceDiff), 2)}
               </span>
             )}
           </span>
@@ -1427,51 +2124,51 @@ function OzetScreen({ onOpenNearby }) {
       <div className="stat-grid">
         <div className="stat-card">
           <div className="top">
-            <span className="label">Bu ay harcama</span>
+            <span className="label">{t('ozetThisMonthSpend')}</span>
             <span className="icon"><Icon.Coin /></span>
           </div>
-          <div className="value">{fmt(animMonthSpend, 2)}<span className="u">₺</span></div>
-          <div className="sub">{thisMonth.length} dolum · {fmt(thisMonth.reduce((s, e) => s + e.liters, 0), 1)} L</div>
+          <div className="value">{fmtL(animMonthSpend, 2)}<span className="u">{currency}</span></div>
+          <div className="sub">{thisMonth.length} {t('gecmisFillsCount')} · {fmtL(thisMonth.reduce((s, e) => s + e.liters, 0), 1)} L</div>
         </div>
         <div className="stat-card">
           <div className="top">
-            <span className="label">km başına</span>
+            <span className="label">{t('ozetPerKm')}</span>
             <span className="icon"><Icon.Gauge /></span>
           </div>
-          <div className="value">{tlPerKm !== null ? fmt(animTlPerKm, 2) : '—'}<span className="u">₺/km</span></div>
-          <div className="sub">{avgKmPerFill !== null ? `ort. ${fmtInt(avgKmPerFill)} km/dolum` : 'tüm zamanlar'}</div>
+          <div className="value">{tlPerKm !== null ? fmtL(animTlPerKm, 2) : '—'}<span className="u">{currency}/km</span></div>
+          <div className="sub">{avgKmPerFill !== null ? `${t('ozetPerFillAvg')} ${fmtIntL(avgKmPerFill)} ${t('ozetKmPerFill')}` : t('ozetAllTime')}</div>
         </div>
         <div className="stat-card">
           <div className="top">
-            <span className="label">Son dolum</span>
+            <span className="label">{t('ozetLastFillup')}</span>
             <span className="icon"><Icon.Receipt /></span>
           </div>
-          <div className="value">{last ? fmt(animLastSpend, 2) : '—'}<span className="u">₺</span></div>
-          <div className="sub">{last ? ((() => { const d = Math.round((new Date() - parseISO(last.dateISO)) / 86400000); const lbl = d === 0 ? 'Bugün' : d === 1 ? 'Dün' : d + ' gün önce'; return lbl + ' · ' + fmt(last.liters, 1) + ' L' + (last.station ? ' · ' + last.station : ''); })()) : '—'}</div>
+          <div className="value">{last ? fmtL(animLastSpend, 2) : '—'}<span className="u">{currency}</span></div>
+          <div className="sub">{last ? ((() => { const d = Math.round((new Date() - parseISO(last.dateISO)) / 86400000); const lbl = d === 0 ? t('ozetToday') : d === 1 ? t('ozetYesterday') : d + ' ' + t('ozetDaysAgo'); return lbl + ' · ' + fmtL(last.liters, 1) + ' L' + (last.station ? ' · ' + last.station : ''); })()) : '—'}</div>
         </div>
         <div className="stat-card">
           <div className="top">
-            <span className="label">Bu yıl harcama</span>
+            <span className="label">{t('ozetThisYearSpend')}</span>
             <span className="icon"><Icon.Sparkle /></span>
           </div>
-          <div className="value">{fmt(animYearSpend, 0)}<span className="u">₺</span></div>
-          <div className="sub">{monthlyAvg !== null ? `ort. ${fmt(monthlyAvg, 0)} ₺/ay` : `bu yıl · ${fmt(yearEntries.reduce((s, e) => s + e.liters, 0), 1)} L`}</div>
+          <div className="value">{fmtL(animYearSpend, 0)}<span className="u">{currency}</span></div>
+          <div className="sub">{monthlyAvg !== null ? `${t('ozetAvgPerMonth')} ${fmtL(monthlyAvg, 0)} ${t('ozetPerMonth')}` : `${fmtL(yearEntries.reduce((s, e) => s + e.liters, 0), 1)} L`}</div>
         </div>
       </div>
 
       {consPts.length >= 2 &&
       <>
           <div className="section-title">
-            <h3>Tüketim Trendi</h3>
+            <h3>{t('ozetConsumptionTrend')}</h3>
             <div style={{ display: 'flex', gap: 4 }}>
-              {[{ key: 'all', label: 'Tümü' }, { key: '3month', label: '3 ay' }, { key: 'year', label: 'Bu yıl' }].map(p => (
+              {[{ key: 'all', label: t('ozetFilterAll') }, { key: '3month', label: t('ozetFilter3m') }, { key: 'year', label: t('ozetFilterYear') }].map(p => (
                 <button key={p.key} className={`filter-pill${consFilter === p.key ? ' active' : ''}`} onClick={() => setConsFilter(p.key)}>{p.label}</button>
               ))}
             </div>
           </div>
           {visibleConsPts.length >= 2
             ? <div className="chart-card"><AreaChart data={visibleConsPts.map((p) => p.consumption)} labels={visibleConsPts.map((p) => p.dateISO)} unit="L/100km" decimals={1} showMinMax={!!(store.prefs && store.prefs.showMinMax)} /></div>
-            : <div style={{ margin: '0 18px', padding: '16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, textAlign: 'center', fontSize: 13, color: 'var(--text-2)' }}>Bu dönemde yeterli veri yok</div>
+            : <div style={{ margin: '0 18px', padding: '16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, textAlign: 'center', fontSize: 13, color: 'var(--text-2)' }}>{t('ozetInsufficientData')}</div>
           }
         </>
       }
@@ -1480,15 +2177,15 @@ function OzetScreen({ onOpenNearby }) {
 
       {((store.events || []).length > 0 || kmReminders.length > 0) && <>
         <div className="section-title" style={{ marginTop: 0 }}>
-          <h3>Hatırlatmalar</h3>
-          {currentKm && kmReminders.length > 0 && <span className="meta">{fmtInt(currentKm)} km</span>}
+          <h3>{t('ozetReminders')}</h3>
+          {currentKm && kmReminders.length > 0 && <span className="meta">{fmtIntL(currentKm)} km</span>}
         </div>
         {upcoming.length === 0 && expired.length === 0 && kmReminders.length === 0 ? (
           <div style={{ margin: '0 18px' }}>
             <EmptyState
               icon={<Icon.Calendar s={28} />}
-              title="Yaklaşan hatırlatma yok"
-              sub="Takvim sekmesinden muayene, sigorta gibi etkinlikler ekleyebilirsin."
+              title={t('ozetNoReminders')}
+              sub={t('ozetNoRemindersSub')}
             />
           </div>
         ) : (
@@ -1519,16 +2216,16 @@ function OzetScreen({ onOpenNearby }) {
                     <div className="left">
                       <div className="iconbox"><Icon.Wrench s={16} /></div>
                       <div>
-                        <div className="name">{r ? r.label : (e ? e.type : 'Bakım')}</div>
-                        <div className="date">{r && `Her ${fmtInt(r.intervalKm)} km`}{r && e && ' · '}{e && fmtDate(e.endISO)}</div>
+                        <div className="name">{r ? r.label : (e ? e.type : t('eventBakim'))}</div>
+                        <div className="date">{r && `${t('ozetEvery')} ${fmtIntL(r.intervalKm)} ${t('ozetKm')}`}{r && e && ' · '}{e && fmtDate(e.endISO)}</div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                       {r && (r.remaining !== null
-                        ? <span className={`remaining ${kmCls}`}>{kmOverdue ? `${fmtInt(Math.abs(r.remaining))} km geçti` : `${fmtInt(r.remaining)} km kaldı`}</span>
+                        ? <span className={`remaining ${kmCls}`}>{kmOverdue ? `${fmtIntL(Math.abs(r.remaining))} ${t('ozetKmOverdue')}` : `${fmtIntL(r.remaining)} ${t('ozetKmLeft')}`}</span>
                         : <span className="remaining">—</span>
                       )}
-                      {e && <span className={`remaining ${evCls}`}>{evExpired ? `${Math.abs(e.days)} gün gecikti` : `${e.days} gün`}</span>}
+                      {e && <span className={`remaining ${evCls}`}>{evExpired ? `${Math.abs(e.days)} ${t('ozetDaysOverdue')}` : `${e.days} ${t('ozetDays')}`}</span>}
                     </div>
                   </div>
                 );
@@ -1539,11 +2236,11 @@ function OzetScreen({ onOpenNearby }) {
                   <div className="left">
                     <div className="iconbox">{e.type === 'Kasko' || e.type === 'Sigorta' ? <Icon.Shield /> : e.type === 'Muayene' ? <Icon.ClipboardCheck /> : <Icon.Tag />}</div>
                     <div>
-                      <div className="name">{e.type}</div>
+                      <div className="name">{e.type === 'Kasko' ? t('eventKasko') : e.type === 'Sigorta' ? t('eventSigorta') : e.type === 'Muayene' ? t('eventMuayene') : e.type === 'Bakım' ? t('eventBakim') : e.type === 'Diğer' ? t('eventDiger') : e.type}</div>
                       <div className="date">{fmtDate(e.endISO)}</div>
                     </div>
                   </div>
-                  <span className={`remaining ${expired ? 'expired' : e.days <= 30 ? 'warn' : 'ok'}`}>{expired ? `${Math.abs(e.days)} gün gecikti` : `${e.days} gün`}</span>
+                  <span className={`remaining ${expired ? 'expired' : e.days <= 30 ? 'warn' : 'ok'}`}>{expired ? `${Math.abs(e.days)} ${t('ozetDaysOverdue')}` : `${e.days} ${t('ozetDays')}`}</span>
                 </div>
               );
             })}
@@ -1559,6 +2256,9 @@ function OzetScreen({ onOpenNearby }) {
 function GecmisScreen({ onEdit, onOpenLpg }) {
   const store = useStore();
   const confirm = useConfirm();
+  const t = useT();
+  const currency = useCurrency();
+  const { fmt: fmtL, fmtInt: fmtIntL, dayMon: dayMonL, monthLabel: monthLabelL } = useFmt();
   const [timeFilter, setTimeFilter] = useState('all');
   const [stationInfoOpen, setStationInfoOpen] = useState(false);
   const [stationFilter, setStationFilter] = useState(null);
@@ -1631,15 +2331,15 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
         .sort((a, b) => a.avg - b.avg);
     };
     const recent = buildStats(store.entries.filter(e => e.dateISO >= cutoff));
-    if (recent.length >= 1) return { stats: recent, label: 'Son 3 ay' };
+    if (recent.length >= 1) return { stats: recent, label: t('last3Months') };
     return null;
-  }, [store.entries]);
+  }, [store.entries, t]);
 
   const timePills = [
-    { key: 'all', label: 'Tümü' },
-    { key: 'month', label: 'Bu ay' },
-    { key: '3month', label: 'Son 3 ay' },
-    { key: 'year', label: 'Bu yıl' },
+    { key: 'all', label: t('gecmisFilterAll') },
+    { key: 'month', label: t('gecmisFilterMonth') },
+    { key: '3month', label: t('gecmisFilter3m') },
+    { key: 'year', label: t('gecmisFilterYear') },
   ];
 
   return (
@@ -1647,10 +2347,10 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
       <div style={{ padding: '20px 18px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div className="title-block" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
-            <h1>Geçmiş</h1>
+            <h1>{t('gecmisTitle')}</h1>
           </div>
           {store.entries.length >= 2 && (store.prefs?.fuelType || 'Benzin') === 'Benzin' && (
-            <button className="btn-accent" style={{ marginTop: 4 }} onClick={onOpenLpg}>LPG Hesabı</button>
+            <button className="btn-accent" style={{ marginTop: 4 }} onClick={onOpenLpg}>{t('gecmisLpgBtn')}</button>
           )}
         </div>
 <div className="filter-row">
@@ -1670,11 +2370,11 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
       {priceHist.length >= 2 &&
       <>
           <div className="section-title">
-            <h3>Fiyat Geçmişi</h3>
-            <span className="meta">{timeFilter === 'all' && priceHist.length >= 2 ? `${fmtDate(priceHist[0].dateISO)} – ${fmtDate(priceHist[priceHist.length - 1].dateISO)}` : { '3month': 'Son 3 ay', year: 'Bu yıl' }[timeFilter]}</span>
+            <h3>{t('gecmisPriceHistory')}</h3>
+            <span className="meta">{timeFilter === 'all' && priceHist.length >= 2 ? `${fmtDate(priceHist[0].dateISO)} – ${fmtDate(priceHist[priceHist.length - 1].dateISO)}` : { '3month': t('gecmisDateRange3m'), year: t('gecmisFilterYear') }[timeFilter]}</span>
           </div>
           <div className="chart-card">
-            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit="₺/L" showMinMax={!!(store.prefs && store.prefs.showMinMax)} labelOffset={-2} padLeft={19} curveOffset={10} />
+            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit={`${currency}/L`} showMinMax={!!(store.prefs && store.prefs.showMinMax)} labelOffset={-2} padLeft={19} curveOffset={10} />
           </div>
         </>
       }
@@ -1682,7 +2382,7 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
       {store.entries.length > 0 && (
         <>
           <div className="section-title">
-            <h3>Aylık Tüketim</h3>
+            <h3>{t('gecmisMonthlyConsumption')}</h3>
           </div>
           <AylikBarChart />
         </>
@@ -1691,7 +2391,7 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
       {stationStats !== null && (
         <>
           <div className="section-title">
-            <h3>İstasyon Karşılaştırması</h3>
+            <h3>{t('gecmisStationComparison')}</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="meta">{stationStats.label}</span>
               <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
@@ -1700,7 +2400,7 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
                 </button>
                 {stationInfoOpen && <>
                   <div onClick={() => setStationInfoOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9 }} />
-                  <div style={{ position: 'absolute', right: 0, top: 20, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10 }}>Enflasyon etkisini azaltmak için hep son 3 aya bakılır</div>
+                  <div style={{ position: 'absolute', right: 0, top: 20, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10 }}>{t('gecmisStationInfoTooltip')}</div>
                 </>}
               </div>
             </div>
@@ -1709,11 +2409,11 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
             {stationStats.stats.map((s, i) => (
               <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  {i === 0 && <span style={{ fontSize: 10, background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 5, padding: '1px 5px', fontWeight: 600, letterSpacing: '0.02em' }}>UCUZ</span>}
+                  {i === 0 && <span style={{ fontSize: 10, background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 5, padding: '1px 5px', fontWeight: 600, letterSpacing: '0.02em' }}>{t('gecmisStationCheap')}</span>}
                   <span style={{ fontSize: 13, fontWeight: 500 }}>{s.name}</span>
                   <span style={{ fontSize: 11, color: 'var(--text-2)' }}>{s.count}×</span>
                 </div>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600 }}>{fmt(s.avg, 2)} ₺/L</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600 }}>{fmtL(s.avg, 2)} {currency}/L</span>
               </div>
             ))}
           </div>
@@ -1721,20 +2421,19 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
       )}
 
       <div className="section-title">
-        <h3>{{ all: 'Tüm Dolumlar', month: 'Bu Ayki Dolumlar', '3month': 'Son 3 Aylık Dolumlar', year: 'Bu Yılki Dolumlar' }[timeFilter]}</h3>
+        <h3>{{ all: t('gecmisAllFills'), month: t('gecmisMonthFills'), '3month': t('gecmis3mFills'), year: t('gecmisYearFills') }[timeFilter]}</h3>
         {filtered.length > 0 && (() => {
           const totalSpend = filtered.reduce((s, e) => s + e.liters * e.pricePerL, 0);
           const totalL = filtered.reduce((s, e) => s + e.liters, 0);
-          const avgPrice = totalL > 0 ? totalSpend / totalL : 0;
-          return <span className="meta">{fmt(totalSpend, 0)} ₺ · {fmt(totalL, 1)} L</span>;
+          return <span className="meta">{fmtL(totalSpend, 0)} {currency} · {fmtL(totalL, 1)} L</span>;
         })()}
       </div>
       {filtered.length === 0 ? (
         <EmptyState
           icon={<Icon.Fuel s={28} />}
-          title={timeFilter === 'all' ? 'Henüz dolum kaydı yok' : 'Bu dönemde kayıt yok'}
-          sub={timeFilter === 'all' ? 'İlk dolumunu ekleyerek yakıt tüketimini takip etmeye başla.' : 'Seçili zaman aralığında dolum kaydı bulunmuyor.'}
-          action={timeFilter === 'all' ? <><Icon.Plus s={14} /> Dolum ekle</> : null}
+          title={timeFilter === 'all' ? t('gecmisNoEntries') : t('gecmisNoPeriod')}
+          sub={timeFilter === 'all' ? t('gecmisNoEntriesSub') : t('gecmisNoPeriodSub')}
+          action={timeFilter === 'all' ? <><Icon.Plus s={14} /> {t('ozetAddFuel')}</> : null}
           onAction={timeFilter === 'all' ? () => document.querySelector('.fab')?.click() : null}
         />
       ) : (
@@ -1749,18 +2448,18 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
         ).sort((a, b) => b[0].localeCompare(a[0])).map(([key, entries]) => (
           <div className="entry-group" key={key}>
             <div className="entry-group-header">
-              <span className="month">{monthLabel(key)}</span>
+              <span className="month">{monthLabelL(key)}</span>
               <span className="count">{(() => {
                 const spend = entries.reduce((s, e) => s + e.liters * e.pricePerL, 0);
                 const cons = entries.map(e => consumptionMap.get(e.id)).filter(v => v !== undefined);
                 const avgCons = cons.length ? cons.reduce((s, v) => s + v, 0) / cons.length : null;
-                return `${entries.length} dolum · ${fmt(spend, 0)} ₺${avgCons !== null ? ` · ${fmt(avgCons, 1)} L/100` : ''}`;
+                return `${entries.length} ${t('gecmisFillsCount')} · ${fmtL(spend, 0)} ${currency}${avgCons !== null ? ` · ${fmtL(avgCons, 1)} L/100` : ''}`;
               })()}</span>
             </div>
             {entries.map((e) => {
-              const dm = dayMon(e.dateISO);
+              const dm = dayMonL(e.dateISO);
               return (
-                <SwipeableEntry key={e.id} onDelete={() => confirm('Bu dolum kaydı kalıcı olarak silinecek.', () => store.deleteEntry(e.id))}>
+                <SwipeableEntry key={e.id} onDelete={() => confirm(t('gecmisDeleteMsg'), () => store.deleteEntry(e.id))}>
                   <div className="entry">
                     <div className="entry-date">
                       <div className="day">{dm.d}</div>
@@ -1768,24 +2467,24 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
                     </div>
                     <div className="entry-mid">
                       <div className="entry-top">
-                        <span className="liters">{fmt(e.liters, 1)} L</span>
-                        <span className={`entry-chip ${e.full ? 'full' : 'partial'}`}>{e.full ? 'Tam' : 'Yarım'}</span>
+                        <span className="liters">{fmtL(e.liters, 1)} L</span>
+                        <span className={`entry-chip ${e.full ? 'full' : 'partial'}`}>{e.full ? t('gecmisFillFull') : t('gecmisFillPartial')}</span>
                       </div>
                       <div className="entry-bot">
-                        <span className="price">{fmt(e.pricePerL, 2)} ₺/L</span>
-                        {consumptionMap.has(e.id) && <><span className="sep">·</span><span>{fmt(consumptionMap.get(e.id), 1)} L/100km</span></>}
+                        <span className="price">{fmtL(e.pricePerL, 2)} {currency}/L</span>
+                        {consumptionMap.has(e.id) && <><span className="sep">·</span><span>{fmtL(consumptionMap.get(e.id), 1)} L/100km</span></>}
                       </div>
                       <div className="entry-bot" style={{ marginTop: 1 }}>
-                        <span>{fmtInt(e.km)} km</span>
+                        <span>{fmtIntL(e.km)} km</span>
                         {e.station && <><span className="sep">·</span><span>{e.station}</span></>}
                       </div>
                       {e.note && <div className="entry-bot" style={{ marginTop: 1, fontStyle: 'italic', color: 'var(--text-dim)' }}>{e.note}</div>}
                     </div>
                     <div className="entry-right">
-                      <div className="total">{fmt(e.liters * e.pricePerL, 2)}<span className="u">₺</span></div>
+                      <div className="total">{fmtL(e.liters * e.pricePerL, 2)}<span className="u">{currency}</span></div>
                       <div className="icons">
                         <button className="btn-icon" onClick={() => onEdit(e)}><Icon.Pencil /></button>
-                        <button className="btn-icon" onClick={() => confirm('Bu dolum kaydı kalıcı olarak silinecek.', () => store.deleteEntry(e.id))}><Icon.Trash /></button>
+                        <button className="btn-icon" onClick={() => confirm(t('gecmisDeleteMsg'), () => store.deleteEntry(e.id))}><Icon.Trash /></button>
                       </div>
                     </div>
                   </div>
@@ -1804,6 +2503,9 @@ function GecmisScreen({ onEdit, onOpenLpg }) {
 function TakvimScreen({ onAddEvent, onEditEvent }) {
   const store = useStore();
   const confirm = useConfirm();
+  const t = useT();
+  const currency = useCurrency();
+  const { fmt: fmtL, fmtInt: fmtIntL } = useFmt();
   const allEvents = (store.events || []).map((e) => ({ ...e, days: daysUntil(e.endISO) }));
   const upcoming = allEvents.filter((e) => e.days >= 0).sort((a, b) => a.days - b.days);
   const expired = allEvents.filter((e) => e.days < 0).sort((a, b) => b.days - a.days);
@@ -1812,10 +2514,10 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
   const kmAnyOverdue = kmReminders.some(r => (r.lastKm + r.intervalKm) - latestKm < 0);
 
   const badge = (days) => {
-    if (days < 0) return { label: `${Math.abs(days)} gün gecikti`, cls: 'expired' };
-    if (days === 0) return { label: 'Bugün', cls: 'warn' };
-    if (days <= 30) return { label: `${days} gün`, cls: 'warn' };
-    return { label: `${days} gün`, cls: 'ok' };
+    if (days < 0) return { label: `${Math.abs(days)} ${t('ozetDaysOverdue')}`, cls: 'expired' };
+    if (days === 0) return { label: t('takvimToday'), cls: 'warn' };
+    if (days <= 30) return { label: `${days} ${t('ozetDays')}`, cls: 'warn' };
+    return { label: `${days} ${t('ozetDays')}`, cls: 'ok' };
   };
 
   const typeIcon = (type) => {
@@ -1843,7 +2545,7 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
     })();
     const barColor = isExpired ? 'var(--negative)' : isWarn ? '#eab308' : 'var(--accent)';
     return (
-      <SwipeableEntry key={e.id} onDelete={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}>
+      <SwipeableEntry key={e.id} onDelete={() => confirm(t('takvimDeleteMsg'), () => store.deleteEvent(e.id))}>
         <div className={`upcoming-row${isExpired ? ' expired' : ''}`} style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div className="left">
@@ -1851,15 +2553,15 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
                 {typeIcon(e.type)}
               </div>
               <div>
-                <div className="name">{e.type}</div>
+                <div className="name">{e.type === 'Kasko' ? t('eventKasko') : e.type === 'Sigorta' ? t('eventSigorta') : e.type === 'Muayene' ? t('eventMuayene') : e.type === 'Bakım' ? t('eventBakim') : e.type === 'Diğer' ? t('eventDiger') : e.type}</div>
                 <div className="date">
                   {e.startISO && <span style={{ color: 'var(--text-2)' }}>{fmtDate(e.startISO)} → </span>}
                   <span style={{ color: 'var(--text)', fontWeight: 500 }}>{fmtDate(e.endISO)}</span>
                 </div>
                 {(e.cost || e.note || e.serviceKm) && <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {e.serviceKm && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmtInt(e.serviceKm)} km</span>}
+                  {e.serviceKm && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmtIntL(e.serviceKm)} km</span>}
                   {e.serviceKm && (e.cost || e.note) && <span style={{ color: 'var(--text-dim)' }}>·</span>}
-                  {e.cost && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(e.cost, 2)} ₺</span>}
+                  {e.cost && <span style={{ fontFamily: 'var(--font-mono)' }}>{fmtL(e.cost, 2)} {currency}</span>}
                   {e.cost && e.note && <span style={{ color: 'var(--text-dim)' }}>·</span>}
                   {e.note && <span style={{ fontStyle: 'italic' }}>{e.note}</span>}
                 </div>}
@@ -1868,7 +2570,7 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className={`remaining ${b.cls}`}>{b.label}</span>
               <button className="btn-icon" onClick={() => onEditEvent(e)}><Icon.Pencil /></button>
-              <button className="btn-icon" onClick={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}><Icon.Trash /></button>
+              <button className="btn-icon" onClick={() => confirm(t('takvimDeleteMsg'), () => store.deleteEvent(e.id))}><Icon.Trash /></button>
             </div>
           </div>
           {progressPct !== null && (
@@ -1885,18 +2587,18 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
     <div>
       <div className="title-row">
         <div className="title-block">
-          <h1>Takvim</h1>
+          <h1>{t('takvimTitle')}</h1>
         </div>
-        <button className="btn btn-accent" onClick={onAddEvent}><Icon.Plus s={14} /> Ekle</button>
+        <button className="btn btn-accent" onClick={onAddEvent}><Icon.Plus s={14} /> {t('takvimAdd')}</button>
       </div>
 
       {allEvents.length === 0 ? (
         <div className="upcoming-list">
           <EmptyState
             icon={<Icon.Calendar s={28} />}
-            title="Henüz etkinlik yok"
-            sub="Muayene, sigorta, lastik gibi hatırlatmaları buradan takip edebilirsin."
-            action={<><Icon.Plus s={14} /> Etkinlik ekle</>}
+            title={t('takvimNoEvents')}
+            sub={t('takvimNoEventsSub')}
+            action={<><Icon.Plus s={14} /> {t('takvimAddEvent')}</>}
             onAction={onAddEvent}
           />
         </div>
@@ -1904,13 +2606,13 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
         <>
           {upcoming.length > 0 && (
             <>
-              <div className="section-title"><h3>Devam Eden</h3></div>
+              <div className="section-title"><h3>{t('takvimOngoing')}</h3></div>
               <div className="upcoming-list">{upcoming.map(renderCard)}</div>
             </>
           )}
           {expired.length > 0 && (
             <>
-              <div className="section-title" style={{ marginTop: upcoming.length > 0 ? 14 : 4 }}><h3>Süresi Dolmuş</h3></div>
+              <div className="section-title" style={{ marginTop: upcoming.length > 0 ? 14 : 4 }}><h3>{t('takvimExpired')}</h3></div>
               <div className="upcoming-list">{expired.map(renderCard)}</div>
             </>
           )}
@@ -1924,6 +2626,8 @@ function TakvimScreen({ onAddEvent, onEditEvent }) {
 function KmReminderSection({ onAdd, onEdit }) {
   const store = useStore();
   const confirm = useConfirm();
+  const t = useT();
+  const { fmtInt: fmtIntL } = useFmt();
   const reminders = (store.prefs || {}).kmReminders || [];
 
   const remove = (id) => {
@@ -1933,8 +2637,8 @@ function KmReminderSection({ onAdd, onEdit }) {
   return (
     <>
       <div className="section-title">
-        <h3>Km Hatırlatmaları</h3>
-        <button className="btn-accent" onClick={onAdd}>Ekle</button>
+        <h3>{t('kmRemindersTitle')}</h3>
+        <button className="btn-accent" onClick={onAdd}>{t('kmReminderAdd')}</button>
       </div>
       {reminders.length > 0 && (
         <div className="row-list" style={{ marginBottom: 8 }}>
@@ -1943,10 +2647,10 @@ function KmReminderSection({ onAdd, onEdit }) {
               <div className="icon"><Icon.Wrench s={16} /></div>
               <div className="meta">
                 <h5>{r.label}</h5>
-                <p>Her {fmtInt(r.intervalKm)} km · Son: {fmtInt(r.lastKm)} km · Sonraki: {fmtInt(r.lastKm + r.intervalKm)} km</p>
+                <p>{t('kmReminderEvery')} {fmtIntL(r.intervalKm)} km · {t('kmReminderLast')} {fmtIntL(r.lastKm)} km · {t('kmReminderNext')} {fmtIntL(r.lastKm + r.intervalKm)} km</p>
               </div>
               <button className="btn-icon" onClick={() => onEdit(r)}><Icon.Pencil s={14} /></button>
-              <button className="btn-icon" onClick={() => confirm(`"${r.label}" hatırlatması silinecek.`, () => remove(r.id))}><Icon.Trash s={14} /></button>
+              <button className="btn-icon" onClick={() => confirm(`"${r.label}" ${t('kmRemindersTitle').toLowerCase()} silinecek.`, () => remove(r.id))}><Icon.Trash s={14} /></button>
             </div>
           ))}
         </div>
@@ -1958,6 +2662,7 @@ function KmReminderSection({ onAdd, onEdit }) {
 /* ── Km Hatırlatma Form Modalı ─────────────────────────── */
 function KmReminderFormModal({ open, editing, onClose }) {
   const store = useStore();
+  const t = useT();
   const isEdit = !!editing;
   const reminders = (store.prefs || {}).kmReminders || [];
   const lastKmDefault = store.entries.length ? Math.max(...store.entries.map((e) => e.km)) : 0;
@@ -1985,8 +2690,8 @@ function KmReminderFormModal({ open, editing, onClose }) {
 
   const save = () => {
     const errs = {};
-    if (!label.trim()) errs.label = 'Açıklama girilmeli';
-    if (!intervalKm || parseInt(intervalKm) <= 0) errs.intervalKm = 'Aralık km girilmeli';
+    if (!label.trim()) errs.label = t('kmFormLabelRequired');
+    if (!intervalKm || parseInt(intervalKm) <= 0) errs.intervalKm = t('kmFormIntervalRequired');
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
     if (isEdit) {
       store.setPref('kmReminders', reminders.map((r) => r.id === editing.id
@@ -2004,24 +2709,24 @@ function KmReminderFormModal({ open, editing, onClose }) {
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ paddingBottom: 24 }}>
         <div className="modal-handle" />
         <div className="modal-head">
-          <h2>{isEdit ? 'Hatırlatmayı Düzenle' : 'Yeni Km Hatırlatması'}</h2>
+          <h2>{isEdit ? t('kmFormEditTitle') : t('kmFormNewTitle')}</h2>
           <button className="btn-icon" onClick={onClose}><Icon.X /></button>
         </div>
-        <div className="label">Açıklama</div>
-        <input className="input" placeholder="örn. Yağ Değişimi" value={label} onChange={(e) => { setLabel(e.target.value); setFormErrors((p) => ({ ...p, label: undefined })); }} style={formErrors.label ? { borderColor: 'var(--negative)' } : {}} autoFocus />
+        <div className="label">{t('kmFormLabel')}</div>
+        <input className="input" placeholder={t('kmFormLabelPlaceholder')} value={label} onChange={(e) => { setLabel(e.target.value); setFormErrors((p) => ({ ...p, label: undefined })); }} style={formErrors.label ? { borderColor: 'var(--negative)' } : {}} autoFocus />
         {formErrors.label && <div className="field-error">{formErrors.label}</div>}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
           <div>
-            <div className="label">Aralık (km)</div>
+            <div className="label">{t('kmFormInterval')}</div>
             <input className="input mono" inputMode="numeric" placeholder="10000" value={intervalKm} onChange={(e) => { setIntervalKm(e.target.value.replace(/[^0-9]/g, '')); setFormErrors((p) => ({ ...p, intervalKm: undefined })); }} style={formErrors.intervalKm ? { borderColor: 'var(--negative)' } : {}} />
             {formErrors.intervalKm && <div className="field-error">{formErrors.intervalKm}</div>}
           </div>
           <div>
-            <div className="label">Son yapılan (km)</div>
+            <div className="label">{t('kmFormLastDone')}</div>
             <input className="input mono" inputMode="numeric" placeholder={String(lastKmDefault || 0)} value={lastKm} onChange={(e) => setLastKm(e.target.value.replace(/[^0-9]/g, ''))} />
           </div>
         </div>
-        <button className="btn btn-primary" style={{ width: '100%', marginTop: 14 }} onClick={save}>{isEdit ? 'Güncelle' : 'Kaydet'}</button>
+        <button className="btn btn-primary" style={{ width: '100%', marginTop: 14 }} onClick={save}>{isEdit ? t('kmFormUpdate') : t('kmFormSave')}</button>
       </div>
     </div>
   );
@@ -2031,6 +2736,7 @@ function KmReminderFormModal({ open, editing, onClose }) {
 function GoogleDriveSection() {
   const drive = useDrive();
   const store = useStore();
+  const t = useT();
   const [restoreConfirm, setRestoreConfirm] = useState(false);
 
   const handleRestore = async () => {
@@ -2046,7 +2752,7 @@ function GoogleDriveSection() {
 
   return (
     <>
-      <div className="section-title"><h3>Google Drive Yedekleme</h3></div>
+      <div className="section-title"><h3>{t('driveTitle')}</h3></div>
       <div className="row-list">
         {drive.isSignedIn ? (
           <>
@@ -2056,34 +2762,34 @@ function GoogleDriveSection() {
               </div>
               <div className="meta">
                 <h5>{drive.email}</h5>
-                <p>{drive.backupStatus === 'saving' ? 'Yedekleniyor…' : drive.backupStatus === 'error' ? 'Yedekleme başarısız' : drive.lastBackup ? `Son yedek: ${fmtBackupTime(drive.lastBackup)}` : 'Henüz yedek alınmadı'}</p>
+                <p>{drive.backupStatus === 'saving' ? t('driveSaving') : drive.backupStatus === 'error' ? t('driveError') : drive.lastBackup ? `${t('driveLastBackup')} ${fmtBackupTime(drive.lastBackup)}` : t('driveNoBackup')}</p>
               </div>
               {drive.backupStatus === 'saving' && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, animation: 'spin 1s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>}
             </div>
             {!restoreConfirm ? (
               <div className="row" style={{ cursor: 'pointer' }} onClick={() => setRestoreConfirm(true)}>
                 <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></div>
-                <div className="meta"><h5>Drive'dan Geri Yükle</h5><p>Mevcut veriler yedekle değiştirilir</p></div>
+                <div className="meta"><h5>{t('driveRestore')}</h5><p>{t('driveRestoreSub')}</p></div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
               </div>
             ) : (
               <div className="row">
-                <div className="meta"><h5>Emin misin?</h5><p>Mevcut tüm veriler silinir</p></div>
+                <div className="meta"><h5>{t('driveRestoreConfirmTitle')}</h5><p>{t('driveRestoreConfirmSub')}</p></div>
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                  <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => setRestoreConfirm(false)}>İptal</button>
-                  <button className="btn btn-accent" style={{ padding: '6px 12px', fontSize: 12 }} onClick={handleRestore}>Geri Yükle</button>
+                  <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => setRestoreConfirm(false)}>{t('cancel')}</button>
+                  <button className="btn btn-accent" style={{ padding: '6px 12px', fontSize: 12 }} onClick={handleRestore}>{t('driveRestoreBtn')}</button>
                 </div>
               </div>
             )}
             <div className="row" style={{ cursor: 'pointer' }} onClick={drive.signOut}>
               <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
-              <div className="meta"><h5>Hesabı Bağla</h5><p>Google Drive bağlantısını kes</p></div>
+              <div className="meta"><h5>{t('driveDisconnect')}</h5><p>{t('driveDisconnectSub')}</p></div>
             </div>
           </>
         ) : (
           <div className="row" style={{ cursor: 'pointer' }} onClick={drive.signIn}>
             <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg></div>
-            <div className="meta"><h5>Google ile Bağlan</h5><p>Veriler otomatik yedeklenir</p></div>
+            <div className="meta"><h5>{t('driveConnect')}</h5><p>{t('driveConnectSub')}</p></div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
           </div>
         )}
@@ -2092,10 +2798,11 @@ function GoogleDriveSection() {
   );
 }
 
-function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmReminder, onEditKmReminder, onOpenExport, onOpenFeedback }) {
+function AyarlarScreen({ theme, setTheme, lang, setLang, currency, setCurrency, onGizlilik, onAddKmReminder, onEditKmReminder, onOpenExport, onOpenFeedback }) {
   const store = useStore();
   const drive = useDrive();
   const confirm = useConfirm();
+  const t = useT();
   const [importOpen, setImportOpen] = useState(false);
   const bildirim = !!(store.prefs?.bildirimler);
   const handleBildirimToggle = async () => {
@@ -2115,16 +2822,16 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
     <div>
       <div className="title-row">
         <div className="title-block">
-          <h1>Ayarlar</h1>
+          <h1>{t('ayarlarTitle')}</h1>
         </div>
       </div>
 
-      <div className="section-title"><h3>Araç</h3></div>
+      <div className="section-title"><h3>{t('ayarlarVehicle')}</h3></div>
       <div style={{ padding: '0 22px' }}>
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
           {[
-            { key: 'vehicleModel', label: 'Marka / Model', placeholder: 'örn. Toyota Corolla' },
-            { key: 'tankCapacity', label: 'Depo (L)', placeholder: 'örn. 55', inputMode: 'numeric' },
+            { key: 'vehicleModel', label: t('ayarlarModel'), placeholder: t('ayarlarModelPlaceholder') },
+            { key: 'tankCapacity', label: t('ayarlarTank'), placeholder: t('ayarlarTankPlaceholder'), inputMode: 'numeric' },
           ].map(({ key, label, placeholder, inputMode }, i) => (
             <div key={key} style={{ padding: '10px 16px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ fontSize: 13, color: 'var(--text-2)', minWidth: 100, flexShrink: 0 }}>{label}</div>
@@ -2138,9 +2845,9 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
             </div>
           ))}
           <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontSize: 13, color: 'var(--text-2)', minWidth: 100, flexShrink: 0 }}>Yakıt Tipi</div>
+            <div style={{ fontSize: 13, color: 'var(--text-2)', minWidth: 100, flexShrink: 0 }}>{t('ayarlarFuelType')}</div>
             <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-              {['Benzin', 'Dizel', 'LPG'].map(ft => {
+              {[['Benzin', t('fuelBenzin')], ['Dizel', t('fuelDizel')], ['LPG', t('fuelLPG')]].map(([ft, ftLabel]) => {
                 const active = (store.prefs?.fuelType || 'Benzin') === ft;
                 return (
                   <button
@@ -2157,7 +2864,7 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
                       fontWeight: active ? 600 : 400,
                       cursor: 'pointer',
                     }}
-                  >{ft}</button>
+                  >{ftLabel}</button>
                 );
               })}
             </div>
@@ -2165,10 +2872,33 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
         </div>
       </div>
 
-      <div className="section-title"><h3>Görünüm</h3></div>
+      <div className="section-title"><h3>{t('ayarlarLanguage')}</h3></div>
       <div style={{ padding: '0 22px' }}>
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '8px 10px', display: 'flex', gap: 6 }}>
-          {[['dark', <Icon.Moon />, 'Koyu'], ['light', <Icon.Sun />, 'Açık'], ['system', <Icon.Settings s={14} />, 'Sistem']].map(([val, icon, label]) => (
+          {[['tr', '🇹🇷', 'Türkçe'], ['en', '🇬🇧', 'English']].map(([val, flag, label]) => (
+            <button key={val} className={`chip-btn ${lang === val ? 'active' : ''}`} onClick={() => setLang(val)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              {flag} {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="section-title"><h3>{t('ayarlarCurrency')}</h3></div>
+      <div style={{ padding: '0 22px' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '8px 10px', display: 'flex', gap: 6 }}>
+          {[['₺', t('currNameLira')], ['$', t('currNameDollar')], ['€', t('currNameEuro')]].map(([val, label]) => (
+            <button key={val} className={`chip-btn ${currency === val ? 'active' : ''}`} onClick={() => setCurrency(val)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 15 }}>{val}</span>
+              <span style={{ fontSize: 11, color: 'inherit' }}>{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="section-title"><h3>{t('ayarlarTheme')}</h3></div>
+      <div style={{ padding: '0 22px' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '8px 10px', display: 'flex', gap: 6 }}>
+          {[['dark', <Icon.Moon />, t('ayarlarThemeDark')], ['light', <Icon.Sun />, t('ayarlarThemeLight')], ['system', <Icon.Settings s={14} />, t('ayarlarThemeSystem')]].map(([val, icon, label]) => (
             <button key={val} className={`chip-btn ${theme === val ? 'active' : ''}`} onClick={() => setTheme(val)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               {icon} {label}
             </button>
@@ -2176,21 +2906,21 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
         </div>
       </div>
 
-      <div className="section-title"><h3>Tercihler</h3></div>
+      <div className="section-title"><h3>{t('ayarlarPrefs')}</h3></div>
       <div className="row-list">
         <div className="row">
           <div className="icon"><Icon.Bell s={16} /></div>
           <div className="meta">
-            <h5>Bildirimler</h5>
-            <p>Takvim etkinlikleri dolmadan önce hatırlatma gönderir</p>
+            <h5>{t('ayarlarNotifications')}</h5>
+            <p>{t('ayarlarNotificationsSub')}</p>
           </div>
           <div className={`switch ${bildirim ? 'on' : ''}`} onClick={handleBildirimToggle} />
         </div>
         <div className="row">
           <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
           <div className="meta">
-            <h5>Min/Maks İşaretleri</h5>
-            <p>Grafiklerde en düşük ve yüksek noktalar</p>
+            <h5>{t('ayarlarMinMax')}</h5>
+            <p>{t('ayarlarMinMaxSub')}</p>
           </div>
           <div className={`switch ${(store.prefs && store.prefs.showMinMax) ? 'on' : ''}`} onClick={() => store.setPref('showMinMax', !(store.prefs && store.prefs.showMinMax))} />
         </div>
@@ -2198,54 +2928,54 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
 
       <KmReminderSection onAdd={onAddKmReminder} onEdit={onEditKmReminder} />
 
-      <div className="section-title"><h3>Geri Bildirim</h3></div>
+      <div className="section-title"><h3>{t('ayarlarFeedback')}</h3></div>
       <div className="row-list">
         <div className="row" style={{ cursor: 'pointer' }} onClick={onOpenFeedback}>
           <div className="icon"><Icon.Star s={16} /></div>
-          <div className="meta"><h5>Öneride Bulun</h5><p>Görüş ve önerilerini ilet</p></div>
+          <div className="meta"><h5>{t('ayarlarSuggest')}</h5><p>{t('ayarlarSuggestSub')}</p></div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
         </div>
       </div>
 
       <GoogleDriveSection />
 
-      <div className="section-title"><h3>Manuel Yedekleme</h3></div>
+      <div className="section-title"><h3>{t('ayarlarManualBackup')}</h3></div>
       <div className="row-list">
         <div className="row" style={{ cursor: 'pointer' }} onClick={onOpenExport}>
           <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-          <div className="meta"><h5>Dışa Aktar</h5><p>Excel veya JSON olarak kaydet</p></div>
+          <div className="meta"><h5>{t('ayarlarExport')}</h5><p>{t('ayarlarExportSub')}</p></div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
         </div>
         <div className="row" style={{ cursor: 'pointer' }} onClick={() => setImportOpen(true)}>
           <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="8 18 12 22 16 18"/><line x1="12" y1="22" x2="12" y2="9"/></svg></div>
-          <div className="meta"><h5>İçe Aktar</h5><p>Daha önce dışa aktarılan JSON dosyası</p></div>
+          <div className="meta"><h5>{t('ayarlarImport')}</h5><p>{t('ayarlarImportSub')}</p></div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
         </div>
         {importOpen && <ImportSheet onClose={() => setImportOpen(false)} />}
       </div>
 
-      <div className="section-title"><h3>Tehlikeli Bölge</h3></div>
+      <div className="section-title"><h3>{t('ayarlarDanger')}</h3></div>
       <div className="row-list">
-        <div className="row" style={{ cursor: 'pointer' }} onClick={() => confirm('Tüm dolum ve takvim kayıtları silinecek, örnek veriler yüklenecek. Araç bilgilerin ve tercihler korunur.', () => store.resetToSeed(), 'Sıfırla')}>
+        <div className="row" style={{ cursor: 'pointer' }} onClick={() => confirm(t('ayarlarResetMsg'), () => store.resetToSeed(), t('ayarlarResetConfirm'))}>
           <div className="icon" style={{ background: 'rgba(248,113,113,0.12)', color: 'var(--negative)' }}><Icon.Trash s={16} /></div>
-          <div className="meta"><h5 style={{ color: 'var(--negative)' }}>Verileri Sıfırla</h5><p>Kayıtlar silinir, örnek veriler yüklenir</p></div>
+          <div className="meta"><h5 style={{ color: 'var(--negative)' }}>{t('ayarlarReset')}</h5><p>{t('ayarlarResetSub')}</p></div>
         </div>
-        <div className="row" style={{ cursor: 'pointer' }} onClick={() => confirm('Tüm yerel veriler ve Google Drive yedeği kalıcı olarak silinecek. Bu işlem geri alınamaz.', async () => { await drive.deleteAccount(); store.clearAll(); }, 'Sil')}>
+        <div className="row" style={{ cursor: 'pointer' }} onClick={() => confirm(t('ayarlarDeleteAllMsg'), async () => { await drive.deleteAccount(); store.clearAll(); }, t('delete'))}>
           <div className="icon" style={{ background: 'rgba(248,113,113,0.12)', color: 'var(--negative)' }}><Icon.Trash s={16} /></div>
-          <div className="meta"><h5 style={{ color: 'var(--negative)' }}>Tüm Verileri Sil</h5><p>Yerel veriler ve Drive yedeği tamamen silinir</p></div>
+          <div className="meta"><h5 style={{ color: 'var(--negative)' }}>{t('ayarlarDeleteAll')}</h5><p>{t('ayarlarDeleteAllSub')}</p></div>
         </div>
       </div>
 
-      <div className="section-title"><h3>Hakkında</h3></div>
+      <div className="section-title"><h3>{t('ayarlarAbout')}</h3></div>
       <div className="row-list">
         <div className="row" style={{ cursor: 'pointer' }} onClick={onGizlilik}>
           <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-          <div className="meta"><h5>Gizlilik Politikası</h5></div>
+          <div className="meta"><h5>{t('ayarlarPrivacy')}</h5></div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
         </div>
         <div className="row">
           <div className="icon"><Icon.Sparkle s={16} /></div>
-          <div className="meta"><h5>Versiyon</h5></div>
+          <div className="meta"><h5>{t('ayarlarVersion')}</h5></div>
           <span style={{ fontSize: 13, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>{APP_VERSION}</span>
         </div>
       </div>
@@ -2257,62 +2987,37 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
 
 /* ── Gizlilik ──────────────────────────────────────────── */
 function GizlilikScreen({ onBack }) {
+  const t = useT();
+  const sections = [
+    { titleKey: 'privacyDataCollected', contentKey: 'privacyDataCollectedContent' },
+    { titleKey: 'privacyDataSharing', contentKey: 'privacyDataSharingContent' },
+    { titleKey: 'privacyThirdParty', contentKey: 'privacyThirdPartyContent' },
+    { titleKey: 'privacyNotifications', contentKey: 'privacyNotificationsContent' },
+    { titleKey: 'privacyLocation', contentKey: 'privacyLocationContent' },
+    { titleKey: 'privacyDataDeletion', contentKey: 'privacyDataDeletionContent' },
+    { titleKey: 'privacyChildren', contentKey: 'privacyChildrenContent' },
+    { titleKey: 'privacyContact', contentKey: 'privacyContactContent' },
+  ];
   return (
     <div>
       <div className="app-header">
         <button className="btn-icon" onClick={onBack} style={{ marginRight: 8 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
         </button>
-        <div className="brand-name">Gizlilik Politikası</div>
+        <div className="brand-name">{t('privacyTitle')}</div>
       </div>
 
       <div style={{ padding: '8px 22px 40px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
         <div>
-          <p style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 16 }}>Son güncelleme: Mayıs 2026</p>
-          <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)' }}>
-            Vitesse, aracınıza ait yakıt dolumlarını ve bakım etkinliklerini takip etmenizi sağlayan kişisel bir uygulamadır.
-            Gizliliğiniz bizim için önceliklidir.
-          </p>
+          <p style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 16 }}>{t('privacyLastUpdate')}</p>
+          <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)' }}>{t('privacyIntro')}</p>
         </div>
 
-        {[
-          {
-            title: 'Toplanan Veriler',
-            content: 'Girdiğiniz dolum kayıtları, bakım etkinlikleri ve tercihler öncelikle cihazınızın yerel depolama alanında (localStorage) saklanır. Google Drive yedekleme özelliğini etkinleştirirseniz bu veriler Google hesabınızın Drive uygulama klasörüne yüklenir; yalnızca sizin erişiminize açıktır. Google OAuth ile giriş yaptığınızda e-posta adresiniz yerel olarak kaydedilir ve hesap bağlantısını kestiğinizde silinir.'
-          },
-          {
-            title: 'Veri Paylaşımı',
-            content: 'Verileriniz reklam amacıyla kullanılmaz veya üçüncü taraflara satılmaz. Google Drive yedekleme tercihini etkinleştirmeniz durumunda yedek dosyanız Google\'ın altyapısında saklanır ve Google\'ın gizlilik politikasına tabidir.'
-          },
-          {
-            title: 'Üçüncü Taraf Hizmetler',
-            content: 'OpenStreetMap/Overpass API: "Yakındaki İstasyonlar" özelliği kullanıldığında konum koordinatlarınız Overpass API sunucusuna gönderilir; istasyon listesi alındıktan sonra herhangi bir veri saklanmaz. Leaflet harita görüntüleme için unpkg.com CDN\'inden yüklenir. Google Fonts yazı tipleri için kullanılır. Bu hizmetler kendi gizlilik politikalarına tabidir.'
-          },
-          {
-            title: 'Bildirimler',
-            content: 'Uygulama, takvim etkinlikleri ve bakım hatırlatmaları için bildirim iznini talep eder. Bildirimler yalnızca cihazınızda yerel olarak oluşturulur; hiçbir sunucuya bağlanmaz. İzni cihaz ayarlarından istediğiniz zaman kapatabilirsiniz.'
-          },
-          {
-            title: 'Konum Verisi',
-            content: 'Uygulama, "Yakındaki İstasyonlar" özelliği için konum iznini talep eder. Konum koordinatları yalnızca yakın çevredeki yakıt istasyonlarını sorgulamak amacıyla Overpass API\'ye anlık olarak iletilir; cihazda kaydedilmez ve başka herhangi bir amaçla kullanılmaz.'
-          },
-          {
-            title: 'Veri Silme',
-            content: 'Ayarlar > Tehlikeli Bölge ekranındaki "Tüm Verileri Sil" seçeneği yerel kayıtlarınızı ve Google Drive yedek dosyanızı kalıcı olarak siler. Yalnızca yerel verileri temizlemek için uygulamayı kaldırabilir veya tarayıcı verilerini silebilirsiniz.'
-          },
-          {
-            title: 'Çocukların Gizliliği',
-            content: 'Uygulama 13 yaş altı çocuklara yönelik değildir ve bu yaş grubundan bilerek veri toplanmaz.'
-          },
-          {
-            title: 'İletişim',
-            content: 'Gizlilik politikasıyla ilgili sorularınız için aria.software.dev@gmail.com adresine ulaşabilirsiniz.'
-          },
-        ].map(({ title, content }) => (
-          <div key={title}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{title}</div>
-            <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)', margin: 0 }}>{content}</p>
+        {sections.map(({ titleKey, contentKey }) => (
+          <div key={titleKey}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{t(titleKey)}</div>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-2)', margin: 0 }}>{t(contentKey)}</p>
           </div>
         ))}
 
@@ -2324,9 +3029,13 @@ function GizlilikScreen({ onBack }) {
 /* ── Sheets ────────────────────────────────────────────── */
 function EntrySheet({ open, onClose, editing }) {
   const store = useStore();
+  const t = useT();
+  const lang = useLang();
+  const currency = useCurrency();
+  const { fmt: fmtL, fmtInt: fmtIL } = useFmt();
   const isEdit = !!editing;
   const fuelType = store.prefs?.fuelType || 'Benzin';
-  const fuelLabel = fuelType === 'Dizel' ? 'Mazot' : fuelType;
+  const fuelLabelT = t('fuel' + fuelType);
   const usedStations = useMemo(() => {
     const seen = new Set();
     const result = [];
@@ -2355,8 +3064,8 @@ function EntrySheet({ open, onClose, editing }) {
     setErrors({});
     if (editing) {
       setDateISO(editing.dateISO);
-      setLiters(fmt(editing.liters, 2));
-      setPricePerL(fmt(editing.pricePerL, 2));
+      setLiters(fmtL(editing.liters, 2));
+      setPricePerL(fmtL(editing.pricePerL, 2));
       setKm(String(editing.km || ''));
       setStation(editing.station || '');
       setNote(editing.note || '');
@@ -2381,11 +3090,11 @@ function EntrySheet({ open, onClose, editing }) {
     const l = parseNum(liters), p = parseNum(pricePerL);
     const k = parseInt(String(km).replace(/[^0-9]/g, ''), 10) || 0;
     const errs = {};
-    if (dateISO > todayISO()) errs.dateISO = 'Gelecek tarih girilemez';
-    if (k <= 0) errs.km = 'Kilometre girilmeli';
-    else if (!isEdit && lastKm !== null && k < lastKm) errs.km = `Önceki dolumdan düşük olamaz (son: ${fmtInt(lastKm)} km)`;
-    if (l <= 0) errs.liters = 'Litre girilmeli';
-    if (p <= 0) errs.pricePerL = 'Fiyat girilmeli';
+    if (dateISO > todayISO()) errs.dateISO = t('entryDateFuture');
+    if (k <= 0) errs.km = t('entryKmRequired');
+    else if (!isEdit && lastKm !== null && k < lastKm) errs.km = `${t('entryKmTooLow')} ${fmtIL(lastKm)} km)`;
+    if (l <= 0) errs.liters = t('entryLitersRequired');
+    if (p <= 0) errs.pricePerL = t('entryPriceRequired');
     if (Object.keys(errs).length) { setErrors(errs); return; }
     const payload = { dateISO, liters: l, pricePerL: p, km: k, station: station.trim(), note: note.trim(), full };
     if (isEdit) store.updateEntry(editing.id, payload); else store.addEntry(payload);
@@ -2398,31 +3107,31 @@ function EntrySheet({ open, onClose, editing }) {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-handle" />
         <div className="modal-head">
-          <h2>{isEdit ? `${fuelLabel} dolumunu düzenle` : `Yeni ${fuelLabel} Dolumu`}</h2>
+          <h2>{isEdit ? (lang === 'tr' ? `${fuelLabelT} ${t('entryEditTitle')}` : t('entryEditTitle')) : `${t('entryNewTitle')} ${fuelLabelT} ${t('entryFillupSuffix')}`}</h2>
           <button className="btn-icon" onClick={handleClose}><Icon.X /></button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div className="label" style={{ margin: 0 }}>Tarih</div>
+          <div className="label" style={{ margin: 0 }}>{t('entryDate')}</div>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button className={`filter-pill${dateISO === todayISO() ? ' active' : ''}`} onClick={() => setDateISO(todayISO())}>Bugün</button>
-            <button className={`filter-pill${dateISO === yesterdayISO() ? ' active' : ''}`} onClick={() => setDateISO(yesterdayISO())}>Dün</button>
+            <button className={`filter-pill${dateISO === todayISO() ? ' active' : ''}`} onClick={() => setDateISO(todayISO())}>{t('entryToday')}</button>
+            <button className={`filter-pill${dateISO === yesterdayISO() ? ' active' : ''}`} onClick={() => setDateISO(yesterdayISO())}>{t('entryYesterday')}</button>
           </div>
         </div>
         <input className="input mono" type="date" value={dateISO} onChange={(e) => { setDateISO(e.target.value); setErrors((er) => ({ ...er, dateISO: undefined })); }} style={errors.dateISO ? { borderColor: 'var(--negative)' } : {}} />
         {errors.dateISO && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>{errors.dateISO}</div>}
 
-        <div className="label" style={{ marginTop: 10 }}>Kilometre</div>
+        <div className="label" style={{ marginTop: 10 }}>{t('entryKm')}</div>
         <input className="input mono" inputMode="numeric" placeholder="örn. 146200" value={km} onChange={(e) => { setKm(e.target.value.replace(/[^0-9]/g, '')); setErrors((er) => ({ ...er, km: undefined })); }} style={errors.km ? { borderColor: 'var(--negative)' } : {}} />
         {errors.km
           ? <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3, paddingLeft: 2 }}>{errors.km}</div>
           : (!isEdit && lastKm !== null && (
               <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 3, paddingLeft: 2 }}>
-                Son kayıt: {fmtInt(lastKm)} km
+                {t('entryLastRecord')} {fmtIL(lastKm)} km
                 {kmNum > lastKm && (() => {
                   const diff = kmNum - lastKm;
                   const warn = diff < 20 || diff > 2000;
-                  return <span style={{ color: warn ? 'var(--negative)' : 'var(--accent)', marginLeft: 8, fontFamily: 'var(--font-mono)' }}>· +{fmtInt(diff)} km{diff < 20 ? ' · çok az?' : diff > 2000 ? ' · çok fazla?' : ''}</span>;
+                  return <span style={{ color: warn ? 'var(--negative)' : 'var(--accent)', marginLeft: 8, fontFamily: 'var(--font-mono)' }}>· +{fmtIL(diff)} km{diff < 20 ? ` · ${t('entryTooFew')}` : diff > 2000 ? ` · ${t('entryTooMany')}` : ''}</span>;
                 })()}
               </div>
             ))
@@ -2430,18 +3139,18 @@ function EntrySheet({ open, onClose, editing }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
           <div>
-            <div className="label">Litre</div>
+            <div className="label">{t('entryLiters')}</div>
             <input className="input mono" inputMode="decimal" placeholder="0,00" value={liters} onChange={(e) => { setLiters(e.target.value.replace('.', ',')); setErrors((er) => ({ ...er, liters: undefined })); }} style={errors.liters ? { borderColor: 'var(--negative)' } : {}} />
             {errors.liters && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>{errors.liters}</div>}
             {!errors.liters && (() => {
               const cap = parseFloat(store.prefs?.tankCapacity) || 0;
               const l = parseNum(liters);
-              if (cap > 0 && l > cap) return <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>Depo kapasitesini aşıyor ({cap} L)</div>;
+              if (cap > 0 && l > cap) return <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>{t('entryCapacityExceeded')} ({cap} L)</div>;
               return null;
             })()}
           </div>
           <div>
-            <div className="label">₺ / Litre</div>
+            <div className="label">{t('entryPricePerL')}</div>
             <input className="input mono" inputMode="decimal" placeholder="0,00" value={pricePerL} onChange={(e) => { setPricePerL(e.target.value.replace('.', ',')); setErrors((er) => ({ ...er, pricePerL: undefined })); }} style={errors.pricePerL ? { borderColor: 'var(--negative)' } : {}} />
             {errors.pricePerL && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>{errors.pricePerL}</div>}
           </div>
@@ -2449,13 +3158,13 @@ function EntrySheet({ open, onClose, editing }) {
         <div className={`toggle-card ${full ? 'on' : ''}`} style={{ marginTop: 10, padding: '10px 12px' }} onClick={() => setFull((v) => !v)}>
           <div className="checkbox">{full && <Icon.Check s={14} />}</div>
           <div>
-            <h5>Tam depo</h5>
-            <p>Tüketim hesabı bir sonraki tam depoyla yapılır.</p>
+            <h5>{t('entryFullTank')}</h5>
+            <p>{t('entryFullTankSub')}</p>
           </div>
         </div>
 
         <div className="label" style={{ marginTop: 10 }}>
-          İstasyon <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, fontSize: 11 }}>(opsiyonel)</span>
+          {t('entryStation')} <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, fontSize: 11 }}>{t('entryOptional')}</span>
         </div>
         {usedStations.length > 0 && (
           <div className="chip-group" style={{ marginBottom: 6 }}>
@@ -2467,29 +3176,29 @@ function EntrySheet({ open, onClose, editing }) {
         <input className="input" placeholder={fuelType === 'LPG' ? 'BRC, LPG Market…' : fuelType === 'Dizel' ? 'Shell, BP, Total…' : 'Shell, BP, Opet…'} value={station} onChange={(e) => setStation(e.target.value)} />
 
         <div className="label" style={{ marginTop: 10 }}>
-          Not <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, fontSize: 11 }}>(opsiyonel)</span>
+          {t('entryNote')} <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, fontSize: 11 }}>{t('entryOptional')}</span>
         </div>
-        <input className="input" placeholder="Uzun yol, bakım sonrası…" value={note} onChange={(e) => setNote(e.target.value)} />
+        <input className="input" placeholder={t('entryNotePlaceholder')} value={note} onChange={(e) => setNote(e.target.value)} />
 
         <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-2)' }}>Toplam</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-2)' }}>{t('entryTotal')}</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: 'var(--text)' }}>
-            {total > 0 ? <>{fmt(total, 2)} <span style={{ fontFamily: 'var(--font-sans)', color: 'var(--text-2)', fontSize: 13, fontWeight: 500 }}>₺</span></> : '—'}
+            {total > 0 ? <>{fmt(total, 2)} <span style={{ fontFamily: 'var(--font-sans)', color: 'var(--text-2)', fontSize: 13, fontWeight: 500 }}>{currency}</span></> : '—'}
           </span>
         </div>
 
-        <button className="btn btn-primary" style={{ width: '100%', marginTop: 10 }} onClick={submit}>{isEdit ? 'Güncelle' : 'Kaydet'}</button>
+        <button className="btn btn-primary" style={{ width: '100%', marginTop: 10 }} onClick={submit}>{isEdit ? t('entryUpdate') : t('entrySave')}</button>
       </div>
     </div>
     {discardOpen && (
       <div className="modal-overlay" style={{ zIndex: 300 }} onClick={() => setDiscardOpen(false)}>
         <div className="modal" onClick={(e) => e.stopPropagation()} style={{ paddingBottom: 28 }}>
           <div className="modal-handle" />
-          <div className="modal-head"><h2>Vazgeç?</h2></div>
-          <div className="modal-sub">Girilen bilgiler kaydedilmeyecek.</div>
+          <div className="modal-head"><h2>{t('entryDiscardTitle')}</h2></div>
+          <div className="modal-sub">{t('entryDiscardSub')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-            <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setDiscardOpen(false); onClose(); }}>Çıkış</button>
-            <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setDiscardOpen(false)}>Düzenlemeye devam et</button>
+            <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setDiscardOpen(false); onClose(); }}>{t('entryDiscardExit')}</button>
+            <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setDiscardOpen(false)}>{t('entryDiscardContinue')}</button>
           </div>
         </div>
       </div>
@@ -2500,6 +3209,8 @@ function EntrySheet({ open, onClose, editing }) {
 
 function EventSheet({ open, onClose, editing, onSaved }) {
   const store = useStore();
+  const t = useT();
+  const currency = useCurrency();
   const isEdit = !!editing;
   const [type, setType] = useState('Kasko');
   const [startISO, setStartISO] = useState(todayISO());
@@ -2545,11 +3256,11 @@ function EventSheet({ open, onClose, editing, onSaved }) {
   if (!open) return null;
 
   const typeOptions = [
-    { label: 'Kasko', icon: <Icon.Shield s={16} /> },
-    { label: 'Sigorta', icon: <Icon.Shield s={16} /> },
-    { label: 'Muayene', icon: <Icon.ClipboardCheck s={16} /> },
-    { label: 'Bakım', icon: <Icon.Wrench s={16} /> },
-    { label: 'Diğer', icon: <Icon.Tag s={16} /> },
+    { value: 'Kasko', tKey: 'eventBtnKasko', icon: <Icon.Shield s={16} /> },
+    { value: 'Sigorta', tKey: 'eventBtnSigorta', icon: <Icon.Shield s={16} /> },
+    { value: 'Muayene', tKey: 'eventBtnMuayene', icon: <Icon.ClipboardCheck s={16} /> },
+    { value: 'Bakım', tKey: 'eventBtnBakim', icon: <Icon.Wrench s={16} /> },
+    { value: 'Diğer', tKey: 'eventBtnDiger', icon: <Icon.Tag s={16} /> },
   ];
 
   const daysBetween = startISO && endISO
@@ -2558,9 +3269,9 @@ function EventSheet({ open, onClose, editing, onSaved }) {
 
   const submit = () => {
     const errs = {};
-    if (type === 'Diğer' && !customType.trim()) errs.customType = 'Tür adı girilmeli';
-    if (!endISO) errs.endISO = 'Bitiş tarihi gerekli';
-    else if (startISO && endISO < startISO) errs.endISO = 'Bitiş tarihi başlangıçtan önce olamaz';
+    if (type === 'Diğer' && !customType.trim()) errs.customType = t('eventCustomTypeRequired');
+    if (!endISO) errs.endISO = t('eventEndRequired');
+    else if (startISO && endISO < startISO) errs.endISO = t('eventEndBeforeStart');
     if (Object.keys(errs).length) { setErrors(errs); return; }
     const resolvedType = type === 'Diğer' ? customType.trim() : type;
     const payload = { type: resolvedType, startISO, endISO, notifyDays, cost: parseNum(cost) || null, note: note.trim() || null, serviceKm: type === 'Bakım' ? (parseInt(serviceKm) || null) : null };
@@ -2573,25 +3284,25 @@ function EventSheet({ open, onClose, editing, onSaved }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-handle" />
-        <div className="modal-head"><h2>{isEdit ? 'Etkinliği düzenle' : 'Yeni etkinlik'}</h2><button className="btn-icon" onClick={onClose}><Icon.X /></button></div>
-        {isEdit && <div className="modal-sub">Etkinlik bilgilerini düzenle</div>}
+        <div className="modal-head"><h2>{isEdit ? t('eventEditTitle') : t('eventNewTitle')}</h2><button className="btn-icon" onClick={onClose}><Icon.X /></button></div>
+        {isEdit && <div className="modal-sub">{t('eventEditSub')}</div>}
         <div className="type-card-group">
-          {typeOptions.map(({ label, icon }) => (
-            <button key={label} className={`type-card${type === label ? ' active' : ''}`} onClick={() => setType(label)}>
+          {typeOptions.map(({ value, tKey, icon }) => (
+            <button key={value} className={`type-card${type === value ? ' active' : ''}`} onClick={() => setType(value)}>
               {icon}
-              <span>{label}</span>
+              <span>{t(tKey)}</span>
             </button>
           ))}
         </div>
         {type === 'Diğer' && (
           <div style={{ marginTop: 8 }}>
-            <input className="input" placeholder="Tür adı girin…" value={customType} onChange={(e) => { setCustomType(e.target.value); setErrors((p) => ({ ...p, customType: undefined })); }} style={errors.customType ? { borderColor: 'var(--negative)' } : {}} autoFocus />
+            <input className="input" placeholder={t('eventCustomTypePlaceholder')} value={customType} onChange={(e) => { setCustomType(e.target.value); setErrors((p) => ({ ...p, customType: undefined })); }} style={errors.customType ? { borderColor: 'var(--negative)' } : {}} autoFocus />
             {errors.customType && <div className="field-error">{errors.customType}</div>}
           </div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
           <div>
-            <div className="label">Başlangıç</div>
+            <div className="label">{t('eventStart')}</div>
             <input className="input mono" type="date" value={startISO} onChange={(e) => {
               const val = e.target.value;
               setStartISO(val);
@@ -2605,15 +3316,15 @@ function EventSheet({ open, onClose, editing, onSaved }) {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <div className="label">Bitiş</div>
-              {daysBetween !== null && <span style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 5 }}>{daysBetween} gün</span>}
+              <div className="label">{t('eventEnd')}</div>
+              {daysBetween !== null && <span style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 5 }}>{daysBetween} {t('eventDays')}</span>}
             </div>
             <input className={`input mono${errors.endISO ? ' error' : ''}`} type="date" value={endISO} onChange={(e) => { setEndISO(e.target.value); setErrors((p) => ({ ...p, endISO: undefined })); }} />
             {errors.endISO && <div className="field-error">{errors.endISO}</div>}
-            {!errors.endISO && endISO && endISO < todayISO() && <div style={{ fontSize: 11, color: 'var(--negative)', marginTop: 3 }}>Bitiş tarihi geçmişte</div>}
+            {!errors.endISO && endISO && endISO < todayISO() && <div style={{ fontSize: 11, color: 'var(--negative)', marginTop: 3 }}>{t('eventEndPast')}</div>}
           </div>
         </div>
-        <div className="label" style={{ marginTop: 12 }}>Önceden bildir (gün)</div>
+        <div className="label" style={{ marginTop: 12 }}>{t('eventNotifyDays')}</div>
         <div className="chip-group">
           {[7, 15, 30, 60].map((d) =>
           <button key={d} className={`chip-btn ${notifyDays === d ? 'active' : ''}`} onClick={() => setNotifyDays(d)}>{d}</button>
@@ -2621,17 +3332,17 @@ function EventSheet({ open, onClose, editing, onSaved }) {
         </div>
         <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 10, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
           <span style={{ color: 'var(--text-dim)', fontSize: 14, lineHeight: 1, marginTop: 1 }}>ℹ</span>
-          <span style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>Uygulama her açıldığında kontrol edilir. Bildirimlerin çalışması için Ayarlar → Bildirimler'i aç.</span>
+          <span style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>{t('eventNotifyInfo')}</span>
         </div>
         {type === 'Bakım' && <>
-          <div className="label" style={{ marginTop: 12 }}>Yapıldığı km <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(opsiyonel)</span></div>
+          <div className="label" style={{ marginTop: 12 }}>{t('eventServiceKm')} <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{t('entryOptional')}</span></div>
           <input className="input mono" inputMode="numeric" placeholder="örn. 152000" value={serviceKm} onChange={(e) => setServiceKm(e.target.value.replace(/[^0-9]/g, ''))} />
         </>}
-        <div className="label" style={{ marginTop: 12 }}>Maliyet <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(opsiyonel)</span></div>
-        <input className="input mono" inputMode="decimal" placeholder="0,00 ₺" value={cost} onChange={(e) => setCost(e.target.value.replace('.', ','))} />
-        <div className="label" style={{ marginTop: 12 }}>Not <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(opsiyonel)</span></div>
-        <textarea className="input" rows={2} placeholder={type === 'Kasko' || type === 'Sigorta' ? 'Poliçe numarası, şirket adı…' : type === 'Bakım' ? 'Yapılan işlemler…' : 'Not…'} value={note} onChange={(e) => setNote(e.target.value)} style={{ resize: 'none', lineHeight: 1.5 }} />
-        <button className="btn btn-primary" style={{ width: '100%', marginTop: 18 }} onClick={submit}>{isEdit ? 'Güncelle' : 'Kaydet'}</button>
+        <div className="label" style={{ marginTop: 12 }}>{t('eventCost')} <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{t('entryOptional')}</span></div>
+        <input className="input mono" inputMode="decimal" placeholder={`0,00 ${currency}`} value={cost} onChange={(e) => setCost(e.target.value.replace('.', ','))} />
+        <div className="label" style={{ marginTop: 12 }}>{t('eventNote')} <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{t('entryOptional')}</span></div>
+        <textarea className="input" rows={2} placeholder={type === 'Kasko' || type === 'Sigorta' ? t('eventNotePlaceholderInsurance') : type === 'Bakım' ? t('eventNotePlaceholderService') : t('eventNotePlaceholderDefault')} value={note} onChange={(e) => setNote(e.target.value)} style={{ resize: 'none', lineHeight: 1.5 }} />
+        <button className="btn btn-primary" style={{ width: '100%', marginTop: 18 }} onClick={submit}>{isEdit ? t('eventUpdate') : t('eventSave')}</button>
       </div>
     </div>);
 
@@ -2710,6 +3421,8 @@ function SwipeableEntry({ children, onDelete }) {
 /* ── Km Prompt ─────────────────────────────────────────── */
 function KmPromptModal({ km, onClose }) {
   const store = useStore();
+  const t = useT();
+  const { fmtInt: fmtIL } = useFmt();
   const existing = (store.prefs || {}).kmReminders || [];
   const defaultInterval = existing.length > 0 ? String(existing[0].intervalKm) : '10000';
   const [intervalKm, setIntervalKm] = useState(defaultInterval);
@@ -2731,18 +3444,18 @@ function KmPromptModal({ km, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()} style={{ paddingBottom: 24 }}>
         <div className="modal-handle" />
-        <div className="modal-head"><h2>Km Hatırlatması</h2></div>
-        <div className="modal-sub">{fmtInt(km)} km'de bakım yapıldı. Bir sonraki hatırlatma eklensin mi?</div>
+        <div className="modal-head"><h2>{t('kmPromptTitle')}</h2></div>
+        <div className="modal-sub">{fmtIL(km)} {t('kmPromptSub')}</div>
         {existing.length === 0 && <>
-          <div className="label" style={{ marginTop: 14 }}>Aralık (km)</div>
+          <div className="label" style={{ marginTop: 14 }}>{t('kmPromptInterval')}</div>
           <input className="input mono" inputMode="numeric" value={intervalKm} onChange={e => setIntervalKm(e.target.value.replace(/[^0-9]/g, ''))} autoFocus />
         </>}
         <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 10, fontSize: 13, color: 'var(--text-2)' }}>
-          Sonraki bakım: <span style={{ color: 'var(--text)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{fmtInt(nextKm)} km</span>
+          {t('kmPromptNextService')} <span style={{ color: 'var(--text)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{fmtIL(nextKm)} km</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
-          <button className="btn btn-primary" style={{ width: '100%' }} onClick={confirm}>Hatırlatma Ekle</button>
-          <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={onClose}>Geç</button>
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={confirm}>{t('kmPromptAdd')}</button>
+          <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={onClose}>{t('kmPromptSkip')}</button>
         </div>
       </div>
     </div>
@@ -3012,11 +3725,12 @@ function AutoBackup() {
 /* ── Feedback Sheet ────────────────────────────────────── */
 function FeedbackSheet({ onClose }) {
   const [text, setText] = useState('');
+  const t = useT();
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h2>Öneride Bulun</h2>
+          <h2>{t('feedbackTitle')}</h2>
           <button className="btn-icon" onClick={onClose}><Icon.X /></button>
         </div>
         <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -3024,7 +3738,7 @@ function FeedbackSheet({ onClose }) {
             autoFocus
             className="input"
             style={{ width: '100%', minHeight: 120, resize: 'none', fontFamily: 'var(--font-sans)', fontSize: 14, boxSizing: 'border-box' }}
-            placeholder="Görüş ve önerilerini yaz…"
+            placeholder={t('feedbackPlaceholder')}
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
@@ -3037,7 +3751,7 @@ function FeedbackSheet({ onClose }) {
               onClose();
             }}
           >
-            Gönder
+            {t('feedbackSend')}
           </button>
         </div>
       </div>
@@ -3049,7 +3763,10 @@ function FeedbackSheet({ onClose }) {
 function App() {
   const [screen, setScreen] = useState('ozet');
   const [lang, setLang] = useState(() => localStorage.getItem('vitesse-lang') || 'tr');
-  useEffect(() => { localStorage.setItem('vitesse-lang', lang); }, [lang]);
+  useEffect(() => { localStorage.setItem('vitesse-lang', lang); document.documentElement.lang = lang; }, [lang]);
+  useEffect(() => { document.documentElement.lang = lang; }, []); // set on mount too
+  const [currency, setCurrency] = useState(() => localStorage.getItem('vitesse-currency') || '₺');
+  useEffect(() => { localStorage.setItem('vitesse-currency', currency); }, [currency]);
   const [theme, setTheme] = useState(() => localStorage.getItem('vitesse-theme') || 'dark');
   useEffect(() => { localStorage.setItem('vitesse-theme', theme); }, [theme]);
   const [systemTheme, setSystemTheme] = useState(() => window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
@@ -3073,7 +3790,7 @@ function App() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   return (
-    <ThemeCtx.Provider value={effectiveTheme}><LangCtx.Provider value={lang}><StoreProvider><DriveProvider><OAuthListener /><AutoBackup /><NotificationChecker /><ConfirmProvider>
+    <CurrencyCtx.Provider value={currency}><ThemeCtx.Provider value={effectiveTheme}><LangCtx.Provider value={lang}><StoreProvider><DriveProvider><OAuthListener /><AutoBackup /><NotificationChecker /><ConfirmProvider>
       <div className="ios-device">
         <div className="ios-screen" data-theme={effectiveTheme}>
           <div className="app">
@@ -3082,16 +3799,18 @@ function App() {
                 {screen === 'ozet' && <OzetScreen onOpenNearby={() => setNearbyOpen(true)} />}
                 {screen === 'gecmis' && <GecmisScreen onEdit={(e) => setEntrySheet({ open: true, editing: e })} onOpenLpg={() => setLpgOpen(true)} />}
                 {screen === 'takvim' && <TakvimScreen onAddEvent={() => setEventSheet({ open: true, editing: null })} onEditEvent={(e) => setEventSheet({ open: true, editing: e })} />}
-                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onGizlilik={() => setScreen('gizlilik')} onAddKmReminder={() => setKmReminderForm({ open: true, editing: null })} onEditKmReminder={(r) => setKmReminderForm({ open: true, editing: r })} onOpenExport={() => setExportOpen(true)} onOpenFeedback={() => setFeedbackOpen(true)} />}
+                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} onGizlilik={() => setScreen('gizlilik')} onAddKmReminder={() => setKmReminderForm({ open: true, editing: null })} onEditKmReminder={(r) => setKmReminderForm({ open: true, editing: r })} onOpenExport={() => setExportOpen(true)} onOpenFeedback={() => setFeedbackOpen(true)} />}
                 {screen === 'gizlilik' && <GizlilikScreen onBack={() => setScreen('ayarlar')} />}
               </div>
             </div>
             <nav className="bottom-nav" style={{ display: screen === 'gizlilik' ? 'none' : '' }}>
-              <button className={`nav-btn ${screen === 'ozet' ? 'active' : ''}`} onClick={() => setScreen('ozet')}><Icon.Home s={22} /><span>Özet</span></button>
-              <button className={`nav-btn ${screen === 'gecmis' ? 'active' : ''}`} onClick={() => setScreen('gecmis')}><Icon.History s={22} /><span>Geçmiş</span></button>
+              {(() => { const tr = (TRANSLATIONS[lang] || TRANSLATIONS.tr); return (<>
+              <button className={`nav-btn ${screen === 'ozet' ? 'active' : ''}`} onClick={() => setScreen('ozet')}><Icon.Home s={22} /><span>{tr.navOzet}</span></button>
+              <button className={`nav-btn ${screen === 'gecmis' ? 'active' : ''}`} onClick={() => setScreen('gecmis')}><Icon.History s={22} /><span>{tr.navGecmis}</span></button>
               {screen !== 'gizlilik' && <div className="fab-wrap"><button className="fab" onClick={() => setEntrySheet({ open: true, editing: null })}><Icon.Plus s={26} /></button></div>}
-              <button className={`nav-btn ${screen === 'takvim' ? 'active' : ''}`} onClick={() => setScreen('takvim')}><Icon.Calendar s={22} /><span>Takvim</span></button>
-              <button className={`nav-btn ${screen === 'ayarlar' ? 'active' : ''}`} onClick={() => setScreen('ayarlar')}><Icon.Settings s={22} /><span>Ayarlar</span></button>
+              <button className={`nav-btn ${screen === 'takvim' ? 'active' : ''}`} onClick={() => setScreen('takvim')}><Icon.Calendar s={22} /><span>{tr.navTakvim}</span></button>
+              <button className={`nav-btn ${screen === 'ayarlar' ? 'active' : ''}`} onClick={() => setScreen('ayarlar')}><Icon.Settings s={22} /><span>{tr.navAyarlar}</span></button>
+              </>); })()}
             </nav>
           </div>
           <EntrySheet open={entrySheet.open} editing={entrySheet.editing} onClose={() => setEntrySheet({ open: false, editing: null })} />
@@ -3104,7 +3823,7 @@ function App() {
           {feedbackOpen && <FeedbackSheet onClose={() => setFeedbackOpen(false)} />}
         </div>
       </div>
-    </ConfirmProvider></DriveProvider></StoreProvider></LangCtx.Provider></ThemeCtx.Provider>);
+    </ConfirmProvider></DriveProvider></StoreProvider></LangCtx.Provider></ThemeCtx.Provider></CurrencyCtx.Provider>);
 
 }
 
