@@ -1,0 +1,190 @@
+{
+  "entries": [
+    {
+      "dateISO": "2025-12-03",
+      "liters": 45,
+      "pricePerL": 45,
+      "km": 140000,
+      "station": "Shell",
+      "note": "",
+      "full": true,
+      "id": "viu4hoby"
+    },
+    {
+      "dateISO": "2025-12-10",
+      "liters": 45,
+      "pricePerL": 42,
+      "km": 140700,
+      "station": "BP",
+      "note": "",
+      "full": true,
+      "id": "f41ki00f"
+    },
+    {
+      "dateISO": "2025-12-24",
+      "liters": 37,
+      "pricePerL": 46,
+      "km": 141200,
+      "station": "Opet",
+      "note": "",
+      "full": false,
+      "id": "ngt13573"
+    },
+    {
+      "dateISO": "2026-01-02",
+      "liters": 56,
+      "pricePerL": 49,
+      "km": 141800,
+      "station": "Total",
+      "note": "",
+      "full": true,
+      "id": "g727x625"
+    },
+    {
+      "dateISO": "2026-01-07",
+      "liters": 32,
+      "pricePerL": 61,
+      "km": 142200,
+      "station": "Total",
+      "note": "",
+      "full": false,
+      "id": "gjf1wpab"
+    },
+    {
+      "dateISO": "2026-01-15",
+      "liters": 16,
+      "pricePerL": 55,
+      "km": 142450,
+      "station": "BP",
+      "note": "",
+      "full": true,
+      "id": "0r21qbnk"
+    },
+    {
+      "dateISO": "2026-01-27",
+      "liters": 30,
+      "pricePerL": 58,
+      "km": 142800,
+      "station": "BP",
+      "note": "",
+      "full": true,
+      "id": "059tzskj"
+    },
+    {
+      "dateISO": "2025-11-05",
+      "liters": 37,
+      "pricePerL": 42,
+      "km": 139400,
+      "station": "Shell",
+      "note": "",
+      "full": true,
+      "id": "70x8gl8m"
+    },
+    {
+      "dateISO": "2025-10-09",
+      "liters": 52,
+      "pricePerL": 37,
+      "km": 138900,
+      "station": "Opet",
+      "note": "",
+      "full": true,
+      "id": "6giagh66"
+    },
+    {
+      "dateISO": "2025-09-11",
+      "liters": 33,
+      "pricePerL": 36,
+      "km": 138000,
+      "station": "Opet",
+      "note": "",
+      "full": true,
+      "id": "vp6frbh6"
+    },
+    {
+      "dateISO": "2025-08-21",
+      "liters": 41,
+      "pricePerL": 32,
+      "km": 137600,
+      "station": "BP",
+      "note": "",
+      "full": true,
+      "id": "36creqvk"
+    },
+    {
+      "dateISO": "2025-07-17",
+      "liters": 45,
+      "pricePerL": 33,
+      "km": 137000,
+      "station": "Shell",
+      "note": "",
+      "full": true,
+      "id": "ijrltrnu"
+    },
+    {
+      "dateISO": "2026-02-12",
+      "liters": 42,
+      "pricePerL": 74,
+      "km": 143300,
+      "station": "Total",
+      "note": "",
+      "full": true,
+      "id": "s8bhwvri"
+    },
+    {
+      "dateISO": "2026-03-05",
+      "liters": 45,
+      "pricePerL": 78,
+      "km": 143900,
+      "station": "BP",
+      "note": "",
+      "full": true,
+      "id": "byovysjp"
+    }
+  ],
+  "events": [
+    {
+      "type": "Kasko",
+      "startISO": "2025-11-04",
+      "endISO": "2026-11-04",
+      "notifyDays": 15,
+      "cost": 17000,
+      "note": "Türkiye Sigorta",
+      "serviceKm": null,
+      "id": "1lssh1yg"
+    },
+    {
+      "type": "Sigorta",
+      "startISO": "2025-11-04",
+      "endISO": "2026-11-04",
+      "notifyDays": 15,
+      "cost": 6000,
+      "note": "Türkiye Sigorta",
+      "serviceKm": null,
+      "id": "kttcgzvi"
+    },
+    {
+      "type": "Muayene",
+      "startISO": "2024-05-08",
+      "endISO": "2026-05-08",
+      "notifyDays": 15,
+      "cost": 2500,
+      "note": null,
+      "serviceKm": null,
+      "id": "bnifag6k"
+    },
+    {
+      "type": "Bakım",
+      "startISO": "2025-06-03",
+      "endISO": "2026-06-03",
+      "notifyDays": 15,
+      "cost": 4000,
+      "note": null,
+      "serviceKm": 133000,
+      "id": "kbg4rxp3"
+    }
+  ],
+  "prefs": {
+    "showMinMax": false,
+    "kmReminders": []
+  }
+}

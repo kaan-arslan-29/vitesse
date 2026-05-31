@@ -1,0 +1,2333 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Yakıt Defteri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100;300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+:root {
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Geist Mono', 'SF Mono', Monaco, monospace;
+  --accent: #f5b342;
+  --accent-soft: rgba(245, 179, 66, 0.16);
+  --accent-ink: #1a1208;
+  --positive: #4ade80;
+  --negative: #f87171;
+
+  --bg: #0d0d10;
+  --bg-2: #141418;
+  --surface: #181820;
+  --surface-2: #1e1e28;
+  --border: #25252f;
+  --border-soft: #1d1d26;
+  --text: #f5f5f7;
+  --text-2: #8e8e9d;
+  --text-dim: #56566a;
+  --color-good: #5dba7d;
+  --color-bad: #c45f5f;
+  --color-chart-axis: #6e6e82;
+}
+
+.ios-screen[data-theme="light"] {
+  --bg: #f2f2f7;
+  --bg-2: #e5e5ea;
+  --surface: #ffffff;
+  --surface-2: #f2f2f7;
+  --border: #c8c8d2;
+  --border-soft: #dcdce4;
+  --text: #1c1c1e;
+  --text-2: #6c6c7a;
+  --text-dim: #b0b0be;
+  --positive: #22c55e;
+  --negative: #ef4444;
+  --color-good: #16a34a;
+  --color-bad: #dc2626;
+  --color-chart-axis: #c0c0cc;
+  --accent-soft: rgba(245, 179, 66, 0.18);
+}
+.ios-screen[data-theme="light"] .hero {
+  background:
+    radial-gradient(130% 105% at 10% 0%, #fff8e6 0%, rgba(255, 248, 230, 0) 60%),
+    radial-gradient(60% 50% at 90% 100%, rgba(255, 248, 230, 0.5) 0%, transparent 50%),
+    var(--surface);
+  border: 1px solid rgba(220, 185, 100, 0.3);
+  box-shadow:
+    0 0 0 1px rgba(220, 185, 100, 0.15),
+    0 8px 32px rgba(200, 160, 60, 0.08);
+}
+.ios-screen[data-theme="light"] .btn-icon {
+  background: #e5e5ea;
+}
+.ios-screen[data-theme="light"] .bottom-nav {
+  background: rgba(242, 242, 247, 0.88);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+html, body { font-family: var(--font-sans); height: 100%; }
+body {
+  background: radial-gradient(70% 60% at 50% 20%, #1c1c26 0%, #0c0c10 65%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+/* ── iOS Device Frame ───────────────────────────────────── */
+.ios-device {
+  width: 400px;
+  height: 868px;
+  background: #000;
+  border-radius: 56px;
+  padding: 10px;
+  box-shadow:
+    0 40px 120px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 2px #1a1a1a,
+    inset 0 0 0 3px #2a2a2a;
+  position: relative;
+  flex-shrink: 0;
+}
+.ios-screen {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  border-radius: 46px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.ios-statusbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 36px 0;
+  color: var(--text);
+  z-index: 10;
+  pointer-events: none;
+}
+.ios-statusbar .time {
+  font-size: 17px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
+}
+.ios-statusbar .indicators {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ios-dynamic-island {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 124px;
+  height: 36px;
+  background: #000;
+  border-radius: 22px;
+  z-index: 15;
+}
+.ios-home-indicator {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 5px;
+  background: var(--text);
+  opacity: 0.4;
+  border-radius: 100px;
+  z-index: 50;
+}
+
+/* ── App container ──────────────────────────────────────── */
+.app { width: 100%; height: 100%; display: flex; flex-direction: column; color: var(--text); }
+.app-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding-bottom: 100px; }
+.app-content::-webkit-scrollbar { display: none; }
+
+/* ── Header ─────────────────────────────────────────────── */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 18px 6px;
+}
+.brand-icon {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center;
+}
+.brand-name {
+  font-size: 14px;
+}
+
+/* ── Title row ──────────────────────────────────────────── */
+.title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 12px 18px 12px;
+  gap: 10px;
+}
+.title-block h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1;
+  color: var(--text);
+}
+.title-block .sub {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 5px;
+  font-weight: 400;
+}
+
+
+/* ── Hero Card ──────────────────────────────────────────── */
+.hero {
+  margin: 0 18px;
+  background:
+    radial-gradient(130% 105% at 10% 0%, #2E2A1F 0%, rgba(46, 42, 31, 0) 60%),
+    radial-gradient(60% 50% at 90% 100%, rgba(46, 42, 31, 0.5) 0%, transparent 50%),
+    var(--surface);
+  border: 1px solid rgba(90, 78, 52, 0.35);
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow:
+    0 0 0 1px rgba(46, 42, 31, 0.3),
+    0 8px 32px rgba(46, 42, 31, 0.2);
+}
+.hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-2);
+  font-weight: 400;
+  font-family: var(--font-sans);
+}
+.trend-pill {
+  font-size: 12px;
+  color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.trend-pill .delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.trend-pill.down .delta { color: var(--positive); }
+.trend-pill.up .delta { color: var(--negative); }
+
+.hero-big-row {
+  display: flex;
+  align-items: baseline;
+  margin-top: 10px;
+  gap: 6px;
+}
+.hero-big {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 48px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  color: var(--text);
+}
+.hero-unit {
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 500;
+  font-family: var(--font-mono);
+  letter-spacing: -0.005em;
+  margin-left: 4px;
+}
+.hero-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 400;
+}
+
+.tank-row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.tank-row .label {
+  font-size: 12px;
+  color: var(--text-2);
+  text-transform: none;
+  white-space: nowrap;
+}
+.tank-row .value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.tank-row .value .num { letter-spacing: -0.01em; }
+.tank-row .value .u {
+  color: var(--text-2);
+  font-weight: 500;
+  margin-left: 2px;
+}
+.tank-row .value .sep {
+  color: var(--text-dim);
+  margin: 0 4px;
+  font-weight: 400;
+}
+
+/* ── Stat Grid ──────────────────────────────────────────── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 12px 18px 0;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 9px;
+  transition: transform 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.stat-card:active {
+  transform: scale(0.97);
+  background: var(--surface-2);
+}
+.stat-card .top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.stat-card .top .label {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-2);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.stat-card .top .icon { color: var(--text-2); }
+.stat-card .value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1;
+  display: inline-flex;
+  align-items: baseline;
+}
+.stat-card .value .u {
+  font-size: 10px;
+  color: var(--text-2);
+  font-weight: 500;
+  margin-left: 2px;
+  letter-spacing: 0;
+}
+.stat-card .sub {
+  font-size: 10px;
+  color: var(--text-2);
+  margin-top: 3px;
+  font-weight: 400;
+}
+
+/* ── Section title ──────────────────────────────────────── */
+.section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 18px 8px;
+  gap: 12px;
+}
+.section-title h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  font-family: var(--font-sans);
+}
+.section-title .meta {
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 400;
+}
+
+/* ── Chart card ─────────────────────────────────────────── */
+.chart-card {
+  margin: 0 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+/* ── Upcoming events ────────────────────────────────────── */
+.upcoming-list { margin: 0 18px; display: flex; flex-direction: column; gap: 8px; }
+.upcoming-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.upcoming-row .left { display: flex; align-items: center; gap: 10px; }
+.upcoming-row .iconbox {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  color: var(--text-2);
+  display: flex; align-items: center; justify-content: center;
+}
+.upcoming-row .name {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text);
+}
+.upcoming-row .date {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.remaining {
+  padding: 6px 11px;
+  background: var(--bg-2);
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.remaining.warn {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--negative);
+}
+.remaining.expired { background: rgba(248, 113, 113, 0.15); color: var(--negative); }
+.remaining.soon { background: var(--accent-soft); color: var(--accent); }
+.remaining.ok { background: rgba(74, 222, 128, 0.12); color: var(--positive); }
+.upcoming-row.expired .iconbox { background: rgba(248, 113, 113, 0.1); color: var(--negative); }
+.upcoming-row .iconbox.soon { background: var(--accent-soft); color: var(--accent); }
+
+/* ── Entry list (Geçmiş) ────────────────────────────────── */
+.entry-list {
+  margin: 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.entry-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.entry-group-header {
+  padding: 8px 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.entry-group-header .month {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+  font-family: var(--font-sans);
+}
+.entry-group-header .count {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.entry {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 12px;
+  padding: 12px 14px;
+  align-items: center;
+}
+.entry + .entry { border-top: 1px solid var(--border); }
+.entry { transition: background 0.15s; }
+.entry:active { background: var(--surface-2); }
+.entry-date {
+  text-align: center;
+  font-family: var(--font-mono);
+  background: var(--bg-2);
+  border-radius: 10px;
+  padding: 6px 4px;
+  width: 40px;
+}
+.entry-date .day {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.entry-date .mon {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+  font-weight: 600;
+}
+.entry-mid { min-width: 0; }
+.entry-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.entry-top .liters {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+}
+.entry-chip {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.entry-chip.full { background: var(--accent-soft); color: var(--accent); }
+.entry-chip.partial { background: var(--bg-2); color: var(--text-2); }
+.entry-bot {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.entry-bot .price {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  font-weight: 500;
+}
+.entry-bot .sep { color: var(--text-dim); }
+.entry-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.entry-right .total {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+.entry-right .total .u {
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 500;
+  margin-left: 2px;
+}
+.entry-right .icons { display: flex; gap: 2px; opacity: 0.7; }
+
+/* ── Filter pills ───────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 18px;
+}
+.filter-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-pill {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.filter-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 600;
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-weight: 600;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 14px 22px;
+  font-size: 14px;
+}
+.btn-primary:active { transform: scale(0.98); }
+.btn-accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 7px 14px;
+  font-size: 13px;
+  border-radius: 20px;
+}
+.btn-accent:active { transform: scale(0.97); }
+.btn-ghost {
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 500;
+}
+.btn-ghost:hover { background: var(--surface-2); }
+.btn-danger {
+  background: var(--color-bad);
+  color: #fff;
+  padding: 14px 22px;
+  font-size: 14px;
+}
+.btn-danger:active { transform: scale(0.98); }
+.btn-icon {
+  background: #21212c;
+  border: none;
+  color: var(--text-2);
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-icon:hover { background: var(--bg-2); color: var(--text); }
+
+/* ── Bottom Nav ─────────────────────────────────────────── */
+.bottom-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10, 10, 13, 0.85);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 76px;
+  padding-bottom: 18px;
+  z-index: 40;
+}
+.nav-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  font-family: var(--font-sans);
+}
+.nav-btn.active { color: var(--accent); }
+.nav-btn.active svg {
+  filter: drop-shadow(0 0 6px rgba(245, 179, 66, 0.5));
+}
+.nav-btn { position: relative; }
+.nav-btn:active { opacity: 0.6; }
+.fab-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fab {
+  width: 56px; height: 56px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 28px rgba(245, 179, 66, 0.45);
+  position: absolute;
+  bottom: -13px;
+  z-index: 45;
+  transition: transform 0.15s;
+}
+.fab:active { transform: scale(0.95); }
+
+/* ── Modal ──────────────────────────────────────────────── */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  border-radius: 46px;
+}
+.modal {
+  background: var(--bg-2);
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  border-bottom-left-radius: 46px;
+  border-bottom-right-radius: 46px;
+  padding: 18px 22px 24px;
+  width: 100%;
+  max-height: 90%;
+  overflow-y: auto;
+}
+.modal::-webkit-scrollbar { display: none; }
+.modal-handle {
+  width: 38px; height: 4px;
+  background: var(--text-dim);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.modal-head h2 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+.modal-sub {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-bottom: 12px;
+}
+.modal .input { padding: 10px 12px; }
+.modal .label { margin-bottom: 5px; }
+.modal .chip-btn { padding: 5px 10px; font-size: 13px; }
+
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.input, .select, textarea.input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  transition: border 0.15s;
+}
+.input.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.input:focus, .select:focus, textarea.input:focus { border-color: var(--accent); }
+.input::placeholder { color: var(--text-dim); }
+.input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: brightness(2) invert(0.8);
+  cursor: pointer;
+}
+
+.chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-btn {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.chip-btn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+.toggle-card {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.toggle-card.on { background: var(--accent-soft); border-color: var(--accent); }
+.toggle-card .checkbox {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  color: transparent;
+  flex-shrink: 0;
+}
+.toggle-card.on .checkbox {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.toggle-card h5 { margin: 0; font-size: 14px; font-weight: 500; color: var(--text); }
+.toggle-card p { margin: 3px 0 0; font-size: 12px; color: var(--text-2); line-height: 1.4; }
+
+/* ── Settings row list ─────────────────────────────────── */
+.row-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin: 0 18px;
+  overflow: hidden;
+}
+.row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px;
+}
+.row + .row { border-top: 1px solid var(--border); }
+.row .icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  color: var(--text-2);
+  display: flex; align-items: center; justify-content: center;
+}
+.row .meta { flex: 1; min-width: 0; }
+.row .meta h5 { margin: 0; font-size: 14px; font-weight: 400; color: var(--text); }
+.row .meta p { margin: 3px 0 0; font-size: 12px; color: var(--text-2); }
+.switch {
+  width: 48px; height: 28px;
+  border-radius: 999px;
+  background: var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  width: 24px; height: 24px;
+  border-radius: 999px;
+  background: white;
+  top: 2px; left: 2px;
+  transition: left 0.2s;
+}
+.switch.on { background: var(--accent); }
+.switch.on::after { left: 22px; }
+
+/* ── Grafik animasyonları ───────────────────────────────── */
+@keyframes drawLine {
+  from { stroke-dashoffset: 800; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes fadeArea {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.screen-transition {
+  animation: screenIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes dotPop {
+  from { opacity: 0; transform: scale(0); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.chart-line {
+  stroke-dasharray: 800;
+  stroke-dashoffset: 800;
+  animation: drawLine 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.chart-area {
+  opacity: 0;
+  animation: fadeArea 0.4s ease 0.1s forwards;
+}
+.chart-dot {
+  opacity: 0;
+  transform-origin: center;
+  animation: dotPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ── Empty State ────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 12px;
+  text-align: center;
+}
+.empty-state .empty-icon {
+  width: 64px; height: 64px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.empty-state .empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.empty-state .empty-sub {
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 400;
+  line-height: 1.5;
+  max-width: 220px;
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const { useState, useEffect, useMemo, useContext, createContext, useRef } = React;
+
+/* ── Empty State bileşeni ───────────────────────────────── */
+function EmptyState({ icon, title, sub, action, onAction }) {
+  return (
+    <div className="empty-state">
+      <div className="empty-icon">{icon}</div>
+      <div className="empty-title">{title}</div>
+      <div className="empty-sub">{sub}</div>
+      {action && <button className="btn btn-primary" onClick={onAction} style={{ marginTop: 4, padding: '10px 20px', fontSize: 14 }}>{action}</button>}
+    </div>
+  );
+}
+
+/* ── Count-up animasyonu ────────────────────────────────── */
+function useCountUp(target, duration = 600) {
+  const [value, setValue] = useState(0);
+  const prev = useRef(0);
+  useEffect(() => {
+    if (target === null || isNaN(target)) { setValue(target); return; }
+    const from = prev.current;
+    prev.current = target;
+    if (from === target) return;
+    const start = performance.now();
+    let raf;
+    const tick = (now) => {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      setValue(from + (target - from) * ease);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else setValue(target);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  return value;
+}
+
+/* ── Icons ─────────────────────────────────────────────── */
+const Icon = {
+  Fuel: ({ s = 22 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="10" height="18" rx="1" />
+      <path d="M3 13h10" />
+      <path d="M13 8h2a2 2 0 0 1 2 2v5a2 2 0 0 0 4 0V9a2 2 0 0 0-.59-1.41l-1.66-1.66" />
+    </svg>,
+
+  Home: ({ s = 22 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />
+    </svg>,
+
+  History: ({ s = 22 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 7v5l4 2" />
+    </svg>,
+
+  Calendar: ({ s = 22 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4.5" width="18" height="17" rx="2" />
+      <path d="M3 9h18M8 2v4M16 2v4" />
+    </svg>,
+
+  Settings: ({ s = 22 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>,
+
+  Plus: ({ s = 24 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>,
+
+  Car: ({ s = 14 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2" />
+      <circle cx="6.5" cy="16.5" r="2.5" />
+      <circle cx="16.5" cy="16.5" r="2.5" />
+    </svg>,
+
+  ChevronDown: ({ s = 14 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>,
+
+  TrendDown: ({ s = 14 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
+      <polyline points="16 17 22 17 22 11" />
+    </svg>,
+
+  TrendUp: ({ s = 14 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>,
+
+  Coin: ({ s = 18 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M15 9c0-1.1-1.3-2-3-2s-3 .9-3 2 1.3 2 3 2 3 .9 3 2-1.3 2-3 2-3-.9-3-2" />
+      <path d="M12 7v10" />
+    </svg>,
+
+  Gauge: ({ s = 18 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3.5 19a9 9 0 1 1 17 0" />
+      <path d="M12 14l4-3" />
+    </svg>,
+
+  Receipt: ({ s = 18 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 3v18l2-1.5L9 21l2-1.5L13 21l2-1.5L17 21l2-1.5V3l-2 1.5L15 3l-2 1.5L11 3 9 4.5 7 3 5 4.5" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+    </svg>,
+
+  Sparkle: ({ s = 18 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3L13.5 10L20 12L13.5 14L12 21L10.5 14L4 12L10.5 10z" />
+    </svg>,
+
+  Shield: ({ s = 18 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>,
+
+  Wrench: ({ s = 18 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>,
+
+  Pencil: ({ s = 14 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    </svg>,
+
+  Trash: ({ s = 14 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>,
+
+  X: ({ s = 22 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>,
+
+  Check: ({ s = 14 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>,
+
+  Bell: ({ s = 18 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>,
+
+  Sun: ({ s = 16 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+    </svg>,
+
+  Moon: ({ s = 16 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+    </svg>,
+
+  ClipboardCheck: ({ s = 18 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+      <rect x="9" y="3" width="6" height="4" rx="1" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>,
+
+  Tag: ({ s = 18 }) =>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+      <circle cx="7.5" cy="7.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+
+};
+
+const SignalIcon = () =>
+<svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor">
+    <rect x="0" y="7" width="3" height="5" rx="0.5" />
+    <rect x="5" y="5" width="3" height="7" rx="0.5" />
+    <rect x="10" y="2.5" width="3" height="9.5" rx="0.5" />
+    <rect x="15" y="0" width="3" height="12" rx="0.5" />
+  </svg>;
+
+const WifiIcon = () =>
+<svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor">
+    <path d="M8.5 2C5.7 2 3.1 3 1 4.7l1.4 1.4C4.1 4.7 6.2 4 8.5 4s4.4.7 6.1 2.1L16 4.7C13.9 3 11.3 2 8.5 2zm0 4c-1.7 0-3.3.6-4.5 1.7l1.5 1.5c.8-.7 1.9-1.2 3-1.2s2.2.5 3 1.2L13 7.7C11.8 6.6 10.2 6 8.5 6zm0 4l-2 2h4l-2-2z" />
+  </svg>;
+
+const BatteryIcon = () =>
+<svg width="28" height="13" viewBox="0 0 28 13" fill="none">
+    <rect x="0.5" y="0.5" width="23" height="12" rx="3" stroke="currentColor" opacity="0.5" />
+    <rect x="2.5" y="2.5" width="19" height="8" rx="1.5" fill="currentColor" />
+    <rect x="24.5" y="4" width="2" height="5" rx="1" fill="currentColor" opacity="0.5" />
+  </svg>;
+
+
+/* ── Format helpers ────────────────────────────────────── */
+const fmt = (n, d = 2) => {
+  if (n === null || n === undefined || Number.isNaN(n)) return '—';
+  return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d });
+};
+const fmtInt = (n) => {
+  if (n === null || n === undefined || Number.isNaN(n)) return '—';
+  return Number(n).toLocaleString('tr-TR');
+};
+const uid = () => Math.random().toString(36).slice(2, 10);
+const parseISO = (s) => {if (!s) return null;const [y, m, d] = s.split('-').map(Number);return new Date(y, m - 1, d);};
+const fmtDate = (s) => {const d = parseISO(s);if (!d) return '';return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;};
+const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const TR_MONTHS_FULL = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+const dayMon = (s) => {const d = parseISO(s);if (!d) return { d: '--', m: '---' };return { d: String(d.getDate()).padStart(2, '0'), m: TR_MONTHS[d.getMonth()] };};
+const monthLabel = (yyyyMM) => { const [y, m] = yyyyMM.split('-'); return `${TR_MONTHS_FULL[parseInt(m, 10) - 1]} ${y}`; };
+const todayISO = () => {const d = new Date();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;};
+const yesterdayISO = () => {const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;};
+const daysUntil = (iso) => {const b = parseISO(iso);if (!b) return 0;return Math.round((b - new Date()) / 86400000);};
+const parseNum = (s) => {
+  if (typeof s !== 'string') return Number(s) || 0;
+  return parseFloat(s.replace(',', '.')) || 0;
+};
+
+/* ── Store ─────────────────────────────────────────────── */
+const STORAGE_KEY = 'yakit-defteri-archive-v12';
+const SEED = {
+  entries: [
+  { id: 'e1', dateISO: '2026-02-14', liters: 25.00, pricePerL: 58.00, km: 143000, station: '', full: true },
+  { id: 'e2', dateISO: '2026-03-01', liters: 30.00, pricePerL: 60.00, km: 143300, station: '', full: true },
+  { id: 'e3', dateISO: '2026-03-09', liters: 45.00, pricePerL: 62.00, km: 143800, station: 'BP', full: true },
+  { id: 'e4', dateISO: '2026-03-15', liters: 45.00, pricePerL: 65.00, km: 144700, station: 'BP', full: false },
+  { id: 'e5', dateISO: '2026-03-25', liters: 45.00, pricePerL: 67.70, km: 145500, station: 'Shell', full: true }],
+
+  events: [
+  { id: 'ev1', type: 'Kasko', startISO: '2026-05-15', endISO: '2026-06-03', notifyDays: 15 },
+  { id: 'ev2', type: 'Muayene', startISO: '2026-04-20', endISO: '2026-05-28', notifyDays: 30 }],
+
+  prefs: { showMinMax: false }
+};
+
+function loadStore() {
+  try {const raw = localStorage.getItem(STORAGE_KEY);return raw ? JSON.parse(raw) : SEED;}
+  catch (e) {return SEED;}
+}
+function saveStore(d) {try {localStorage.setItem(STORAGE_KEY, JSON.stringify(d));} catch (e) {}}
+
+const StoreCtx = createContext(null);
+function StoreProvider({ children }) {
+  const [data, setData] = useState(loadStore);
+  useEffect(() => {saveStore(data);}, [data]);
+  const actions = useMemo(() => ({
+    addEntry: (e) => setData((d) => ({ ...d, entries: [...d.entries, { ...e, id: uid() }] })),
+    updateEntry: (id, p) => setData((d) => ({ ...d, entries: d.entries.map((e) => e.id === id ? { ...e, ...p } : e) })),
+    deleteEntry: (id) => setData((d) => ({ ...d, entries: d.entries.filter((e) => e.id !== id) })),
+    addEvent: (e) => setData((d) => ({ ...d, events: [...d.events, { ...e, id: uid() }] })),
+    updateEvent: (id, p) => setData((d) => ({ ...d, events: d.events.map((e) => e.id === id ? { ...e, ...p } : e) })),
+    deleteEvent: (id) => setData((d) => ({ ...d, events: d.events.filter((e) => e.id !== id) })),
+    setPref: (key, val) => setData((d) => ({ ...d, prefs: { ...(d.prefs || {}), [key]: val } })),
+    resetToSeed: () => setData(SEED),
+    loadData: (d) => setData(d),
+  }), []);
+  const value = useMemo(() => ({ ...data, ...actions }), [data, actions]);
+  return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
+}
+const useStore = () => useContext(StoreCtx);
+
+/* ── Confirm ───────────────────────────────────────────── */
+const ConfirmCtx = createContext(null);
+function ConfirmProvider({ children }) {
+  const [state, setState] = useState({ open: false, message: '', onConfirm: null });
+  const ask = (message, onConfirm) => setState({ open: true, message, onConfirm });
+  const close = () => setState((s) => ({ ...s, open: false }));
+  return (
+    <ConfirmCtx.Provider value={ask}>
+      {children}
+      {state.open && (
+        <div className="modal-overlay" onClick={close}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ paddingBottom: 28 }}>
+            <div className="modal-handle" />
+            <div className="modal-head"><h2>Emin misin?</h2></div>
+            <div className="modal-sub">{state.message}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              <button className="btn btn-danger" style={{ width: '100%' }} onClick={() => { state.onConfirm(); close(); }}>Sil</button>
+              <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={close}>İptal</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </ConfirmCtx.Provider>
+  );
+}
+const useConfirm = () => useContext(ConfirmCtx);
+
+/* ── Stats ─────────────────────────────────────────────── */
+function consumptionPoints(entries) {
+  const xs = [...entries].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  const points = [];
+  let lastFullIdx = -1;
+  for (let i = 0; i < xs.length; i++) {
+    if (!xs[i].full) continue;
+    if (lastFullIdx === -1) {lastFullIdx = i;continue;}
+    let liters = 0;
+    for (let j = lastFullIdx + 1; j <= i; j++) liters += xs[j].liters;
+    const km = xs[i].km - xs[lastFullIdx].km;
+    if (km > 0) points.push({ dateISO: xs[i].dateISO, consumption: liters * 100 / km, km, liters });
+    lastFullIdx = i;
+  }
+  return points;
+}
+function averageConsumption(pts) {
+  if (!pts.length) return null;
+  const totalKm = pts.reduce((s, p) => s + p.km, 0);
+  const totalL = pts.reduce((s, p) => s + p.liters, 0);
+  return totalKm > 0 ? totalL * 100 / totalKm : null;
+}
+
+/* ── Area Chart ────────────────────────────────────────── */
+function AreaChart({ data, labels, unit = '', decimals = 2, showMinMax = false }) {
+  const [active, setActive] = useState(null);
+  if (!data || data.length < 2) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-2)', fontSize: 14 }}>Yetersiz veri</div>;
+  const W = 320, H = 160;
+  const pad = { t: 12, r: 14, b: 8, l: 38 };
+  const cW = W - pad.l - pad.r;
+  const cH = H - pad.t - pad.b;
+
+  const dataMin = Math.min(...data);
+  const dataMax = Math.max(...data);
+  const spread = dataMax - dataMin || 1;
+
+  // Exactly 5 y-axis labels (4 equal intervals)
+  const rawStep = spread / 4;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const step = [1, 2, 5, 10].map((f) => f * mag).find((s) => s >= rawStep) ?? mag * 10;
+  const labelDec = step < 1 ? 1 : 0;
+  const gridMax = Math.ceil(dataMax / step) * step;
+  const gridMin = Math.floor(dataMin / step) * step;
+  const numIntervals = Math.round((gridMax - gridMin) / step);
+  const gridVals = Array.from({ length: numIntervals + 1 }, (_, i) => parseFloat((gridMin + i * step).toFixed(labelDec)));
+
+  const yMin = gridMin - step * 0.3;
+  const yMax = gridMax + step * 0.3;
+  const range = yMax - yMin;
+
+  const xs = data.map((_, i) => pad.l + (i / (data.length - 1)) * cW);
+  const ys = data.map((v) => pad.t + ((yMax - v) / range) * cH);
+
+  const minVal = Math.min(...data), maxVal = Math.max(...data);
+  const minIdx = data.indexOf(minVal), maxIdx = data.indexOf(maxVal);
+
+  // Cubic Bezier smooth path (Catmull-Rom → Bezier)
+  const smooth = (pts) => {
+    if (pts.length < 2) return '';
+    let d = `M ${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] || p2;
+      const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+      const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+      const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0]},${p2[1]}`;
+    }
+    return d;
+  };
+
+  const pts = xs.map((x, i) => [x, ys[i]]);
+  const linePath = smooth(pts);
+  const areaPath = `${linePath} L ${xs[xs.length - 1]},${pad.t + cH} L ${xs[0]},${pad.t + cH} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', display: 'block' }} onClick={() => setActive(null)}>
+      <defs>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {gridVals.map((val, i) => {
+        const y = pad.t + ((yMax - val) / range) * cH;
+        if (y < pad.t - 2 || y > pad.t + cH + 2) return null;
+        return (
+          <g key={i}>
+            <line x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray="3 5" strokeOpacity="0.7" />
+            <text x={pad.l - 12} y={y + 3.5} fontSize="10" textAnchor="end" fill="var(--color-chart-axis)" fontFamily="Geist Mono, monospace">
+              {val.toFixed(1)}
+            </text>
+          </g>
+        );
+      })}
+      <path d={areaPath} fill="url(#areaGrad)" className="chart-area" />
+      <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" className="chart-line" />
+      {xs.map((x, i) => {
+        const isActive = active === i;
+        const isMin = showMinMax && i === minIdx;
+        const isMax = showMinMax && i === maxIdx;
+        const dotColor = isMin ? 'var(--color-good)' : isMax ? 'var(--color-bad)' : isActive ? 'var(--accent)' : 'var(--bg)';
+        const strokeColor = isMin ? 'var(--color-good)' : isMax ? 'var(--color-bad)' : 'var(--accent)';
+        return (
+          <g key={i} style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setActive(active === i ? null : i); }}>
+            <circle cx={x} cy={ys[i]} r={isActive || isMin || isMax ? 5 : 3.5} fill={dotColor} stroke={strokeColor} strokeWidth="2" className="chart-dot" style={{ transition: 'r 0.15s', animationDelay: `${0.2 + i * 0.03}s` }} />
+            {isActive && labels && (() => {
+              const tooltipW = 90, tooltipH = 38;
+              const tx = Math.min(Math.max(x - tooltipW / 2, pad.l), W - pad.r - tooltipW);
+              const tyAbove = ys[i] - tooltipH - 10;
+              const ty = tyAbove < pad.t ? ys[i] + 10 : tyAbove;
+              const d = parseISO(labels[i]);
+              const dateStr = d ? `${d.getDate()} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][d.getMonth()]}` : labels[i];
+              return (
+                <g>
+                  <rect x={tx} y={ty} width={tooltipW} height={tooltipH} rx="8" fill="var(--surface-2)" stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.4" />
+                  <text x={tx + tooltipW / 2} y={ty + 13} fontSize="12" fontWeight="500" textAnchor="middle" fill="var(--text-2)" fontFamily="Geist, sans-serif">{dateStr}</text>
+                  <text x={tx + tooltipW / 2} y={ty + 28} fontSize="12" fontWeight="600" textAnchor="middle" fill="var(--accent)" fontFamily="Geist Mono, monospace">{fmt(data[i], decimals)} {unit}</text>
+                </g>
+              );
+            })()}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/* ── Brand icon (Fuel pump in rounded square) ─────────── */
+function BrandIcon() {
+  return (
+    <div className="brand-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="10" height="18" rx="1.5" />
+        <path d="M3 12h10" />
+        <path d="M13 8h2.5a1.5 1.5 0 0 1 1.5 1.5v5.5a1.5 1.5 0 0 0 3 0V8.5a1 1 0 0 0-.29-.71l-1.71-1.71" />
+      </svg>
+    </div>);
+
+}
+
+/* ── Özet ──────────────────────────────────────────────── */
+function OzetScreen() {
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [consFilter, setConsFilter] = useState('all');
+  const store = useStore();
+  const myEntries = useMemo(() => [...store.entries].sort((a, b) => b.dateISO.localeCompare(a.dateISO)), [store.entries]);
+  const consPts = useMemo(() => consumptionPoints(store.entries), [store.entries]);
+  const avgCons = useMemo(() => averageConsumption(consPts), [consPts]);
+  const visibleConsPts = useMemo(() => {
+    const now = new Date();
+    const d3m = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()).toISOString().slice(0, 10);
+    const thisYear = `${now.getFullYear()}`;
+    if (consFilter === '3month') return consPts.filter(p => p.dateISO >= d3m);
+    if (consFilter === 'year') return consPts.filter(p => p.dateISO.startsWith(thisYear));
+    return consPts;
+  }, [consPts, consFilter]);
+  const lastCons = consPts.length ? consPts[consPts.length - 1].consumption : null;
+  const prevCons = consPts.length >= 2 ? consPts[consPts.length - 2].consumption : null;
+
+  const last = myEntries[0];
+  const now = new Date();
+  const thisMonth = store.entries.filter((e) => {
+    const d = parseISO(e.dateISO);
+    return d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  });
+  const thisMonthSpend = thisMonth.reduce((s, e) => s + e.liters * e.pricePerL, 0);
+
+  const tlPerKm = useMemo(() => {
+    if (consPts.length === 0) return null;
+    const xs = [...store.entries].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    let lastFull = -1, totalTL = 0, totalKm = 0;
+    for (let i = 0; i < xs.length; i++) {
+      if (!xs[i].full) continue;
+      if (lastFull === -1) { lastFull = i; continue; }
+      for (let j = lastFull + 1; j <= i; j++) totalTL += xs[j].liters * xs[j].pricePerL;
+      totalKm += xs[i].km - xs[lastFull].km;
+      lastFull = i;
+    }
+    return totalKm > 0 ? totalTL / totalKm : null;
+  }, [store.entries, consPts]);
+
+  const sortedEntries = useMemo(() => [...store.entries].sort((a, b) => a.dateISO.localeCompare(b.dateISO)), [store.entries]);
+  const lastPrice = sortedEntries.length ? sortedEntries[sortedEntries.length - 1].pricePerL : null;
+  const prevPrice = sortedEntries.length >= 2 ? sortedEntries[sortedEntries.length - 2].pricePerL : null;
+  const priceDiff = lastPrice !== null && prevPrice !== null ? lastPrice - prevPrice : null;
+
+  const avgKmPerFill = useMemo(() => {
+    if (sortedEntries.length < 2) return null;
+    const diffs = [];
+    for (let i = 1; i < sortedEntries.length; i++) {
+      const d = sortedEntries[i].km - sortedEntries[i - 1].km;
+      if (d > 0) diffs.push(d);
+    }
+    return diffs.length ? Math.round(diffs.reduce((s, d) => s + d, 0) / diffs.length) : null;
+  }, [sortedEntries]);
+
+  const yearEntries = store.entries.filter((e) => {
+    const d = parseISO(e.dateISO);
+    return d && d.getFullYear() === now.getFullYear();
+  });
+
+  const upcoming = (store.events || []).
+  map((e) => ({ ...e, days: daysUntil(e.endISO) })).
+  filter((e) => e.days >= 0 && e.days <= 30).
+  sort((a, b) => a.days - b.days);
+
+  const yearSpend = yearEntries.reduce((s, e) => s + e.liters * e.pricePerL, 0);
+  const animAvgCons = useCountUp(avgCons ?? 0);
+  const animMonthSpend = useCountUp(thisMonthSpend);
+  const animTlPerKm = useCountUp(tlPerKm ?? 0);
+  const animLastSpend = useCountUp(last ? last.liters * last.pricePerL : 0);
+  const animYearSpend = useCountUp(yearSpend);
+
+  return (
+    <div>
+      <div className="app-header">
+        <BrandIcon />
+        <div className="brand-name">Yakıt Defteri</div>
+      </div>
+
+      <div className="title-row">
+        <div className="title-block">
+          <h1>Özet</h1>
+          <div className="sub">{myEntries.length} dolum kaydı</div>
+        </div>
+      </div>
+
+      <div className="hero">
+        <div className="hero-top">
+          <span className="eyebrow">Ortalama Tüketim</span>
+        </div>
+        <div className="hero-big-row">
+          <span className="hero-big">{avgCons !== null ? fmt(animAvgCons, 1) : '—'}</span>
+          <span className="hero-unit">L/100km</span>
+<div style={{ position: 'relative', display: 'inline-flex', alignItems: 'flex-end', marginBottom: 3, marginLeft: 6 }}>
+            <button onClick={() => setInfoOpen(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </button>
+            {infoOpen && <>
+              <div onClick={() => setInfoOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9 }} />
+              <div style={{ position: 'absolute', left: 0, top: 22, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10, transform: 'translateX(-30%)' }}>{consPts.length >= 2 ? `Tam depolar arası · son ${consPts.length} dolum` : 'En az 2 tam depo gerekli'}</div>
+            </>}
+          </div>
+        </div>
+
+        <div className="tank-row">
+          <span className="label">Son dolumda ödenen</span>
+          <span className="value" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {lastPrice ? <><span className="num">{fmt(lastPrice, 2)}</span><span className="u">₺/L</span></> : <span className="num">—</span>}
+            {priceDiff !== null && (
+              <span style={{ fontSize: 12, fontWeight: 600, color: priceDiff > 0 ? 'var(--negative)' : 'var(--positive)', background: priceDiff > 0 ? 'rgba(248,113,113,0.12)' : 'rgba(74,222,128,0.12)', borderRadius: 6, padding: '2px 6px' }}>
+                {priceDiff > 0 ? '↑' : '↓'} {fmt(Math.abs(priceDiff), 2)}
+              </span>
+            )}
+          </span>
+        </div>
+      </div>
+
+      <div className="stat-grid">
+        <div className="stat-card">
+          <div className="top">
+            <span className="label">Bu ay harcama</span>
+            <span className="icon"><Icon.Coin /></span>
+          </div>
+          <div className="value">{fmt(animMonthSpend, 2)}<span className="u">₺</span></div>
+          <div className="sub">{thisMonth.length} dolum · {fmt(thisMonth.reduce((s, e) => s + e.liters, 0), 1)} L</div>
+        </div>
+        <div className="stat-card">
+          <div className="top">
+            <span className="label">km başına</span>
+            <span className="icon"><Icon.Gauge /></span>
+          </div>
+          <div className="value">{tlPerKm !== null ? fmt(animTlPerKm, 2) : '—'}<span className="u">₺/km</span></div>
+          <div className="sub">{avgKmPerFill !== null ? `ort. ${fmtInt(avgKmPerFill)} km/dolum` : 'tüm zamanlar'}</div>
+        </div>
+        <div className="stat-card">
+          <div className="top">
+            <span className="label">Son dolum</span>
+            <span className="icon"><Icon.Receipt /></span>
+          </div>
+          <div className="value">{last ? fmt(animLastSpend, 2) : '—'}<span className="u">₺</span></div>
+          <div className="sub">{last ? ((() => { const d = Math.round((new Date() - parseISO(last.dateISO)) / 86400000); const lbl = d === 0 ? 'Bugün' : d === 1 ? 'Dün' : d + ' gün önce'; return lbl + ' · ' + fmt(last.liters, 1) + ' L' + (last.station ? ' · ' + last.station : ''); })()) : '—'}</div>
+        </div>
+        <div className="stat-card">
+          <div className="top">
+            <span className="label">Bu yıl harcama</span>
+            <span className="icon"><Icon.Sparkle /></span>
+          </div>
+          <div className="value">{fmt(animYearSpend, 0)}<span className="u">₺</span></div>
+          <div className="sub">bu yıl · {fmt(yearEntries.reduce((s, e) => s + e.liters, 0), 1)} L</div>
+        </div>
+      </div>
+
+      {consPts.length >= 2 &&
+      <>
+          <div className="section-title">
+            <h3>Tüketim Trendi</h3>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[{ key: 'all', label: 'Tümü' }, { key: '3month', label: '3 ay' }, { key: 'year', label: 'Bu yıl' }].map(p => (
+                <button key={p.key} className={`filter-pill${consFilter === p.key ? ' active' : ''}`} onClick={() => setConsFilter(p.key)}>{p.label}</button>
+              ))}
+            </div>
+          </div>
+          {visibleConsPts.length >= 2
+            ? <div className="chart-card"><AreaChart data={visibleConsPts.map((p) => p.consumption)} labels={visibleConsPts.map((p) => p.dateISO)} unit="L/100km" decimals={1} showMinMax={!!(store.prefs && store.prefs.showMinMax)} /></div>
+            : <div style={{ margin: '0 18px', padding: '16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, textAlign: 'center', fontSize: 13, color: 'var(--text-2)' }}>Bu dönemde yeterli veri yok</div>
+          }
+        </>
+      }
+
+      {(store.events || []).length > 0 && <>
+        <div className="section-title" style={{ marginTop: consPts.length < 2 ? 8 : 0 }}>
+          <h3>Yaklaşan Hatırlatmalar</h3>
+          {upcoming.length > 0 && <span className="meta">Sonraki 30 gün</span>}
+        </div>
+        {upcoming.length === 0 ? (
+          <div style={{ margin: '0 18px' }}>
+            <EmptyState
+              icon={<Icon.Calendar s={28} />}
+              title="Yaklaşan hatırlatma yok"
+              sub="Takvim sekmesinden muayene, sigorta gibi etkinlikler ekleyebilirsin."
+            />
+          </div>
+        ) : (
+          <div className="upcoming-list">
+            {upcoming.map((e) =>
+            <div className="upcoming-row" key={e.id}>
+              <div className="left">
+                <div className="iconbox">{e.type === 'Kasko' || e.type === 'Sigorta' ? <Icon.Shield /> : e.type === 'Muayene' ? <Icon.ClipboardCheck /> : e.type === 'Bakım' ? <Icon.Wrench /> : <Icon.Tag />}</div>
+                <div>
+                  <div className="name">{e.type}</div>
+                  <div className="date">{fmtDate(e.endISO)}</div>
+                </div>
+              </div>
+              <span className={`remaining ${e.days < 15 ? 'warn' : ''}`}>{e.days} gün</span>
+            </div>
+            )}
+          </div>
+        )}
+      </>}
+    </div>);
+
+}
+
+/* ── Geçmiş ────────────────────────────────────────────── */
+function GecmisScreen({ onEdit }) {
+  const store = useStore();
+  const confirm = useConfirm();
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [stationInfoOpen, setStationInfoOpen] = useState(false);
+  const [stationFilter, setStationFilter] = useState(null);
+
+  const allStations = useMemo(() => {
+    const seen = new Set();
+    const result = [];
+    [...store.entries].sort((a, b) => b.dateISO.localeCompare(a.dateISO)).forEach(e => {
+      if (e.station && !seen.has(e.station)) { seen.add(e.station); result.push(e.station); }
+    });
+    return result;
+  }, [store.entries]);
+
+  const filtered = useMemo(() => {
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const thisYear = `${now.getFullYear()}`;
+    const d3m = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()).toISOString().slice(0, 10);
+    let xs = [...store.entries];
+    if (timeFilter === 'month') xs = xs.filter((e) => e.dateISO.startsWith(thisMonth));
+    else if (timeFilter === '3month') xs = xs.filter((e) => e.dateISO >= d3m);
+    else if (timeFilter === 'year') xs = xs.filter((e) => e.dateISO.startsWith(thisYear));
+    if (stationFilter) xs = xs.filter((e) => e.station === stationFilter);
+    return xs.sort((a, b) => b.dateISO.localeCompare(a.dateISO));
+  }, [store.entries, timeFilter, stationFilter]);
+
+  const priceHist = useMemo(() => {
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const thisYear = `${now.getFullYear()}`;
+    const d3m = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()).toISOString().slice(0, 10);
+    let xs = [...store.entries];
+    if (timeFilter === 'month') xs = xs.filter((e) => e.dateISO.startsWith(thisMonth));
+    else if (timeFilter === '3month') xs = xs.filter((e) => e.dateISO >= d3m);
+    else if (timeFilter === 'year') xs = xs.filter((e) => e.dateISO.startsWith(thisYear));
+    return xs.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  }, [store.entries, timeFilter]);
+
+  const consumptionMap = useMemo(() => {
+    const xs = [...store.entries].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const map = new Map();
+    let lastFullIdx = -1;
+    for (let i = 0; i < xs.length; i++) {
+      if (!xs[i].full) continue;
+      if (lastFullIdx === -1) { lastFullIdx = i; continue; }
+      let liters = 0;
+      for (let j = lastFullIdx + 1; j <= i; j++) liters += xs[j].liters;
+      const km = xs[i].km - xs[lastFullIdx].km;
+      if (km > 0) map.set(xs[i].id, liters * 100 / km);
+      lastFullIdx = i;
+    }
+    return map;
+  }, [store.entries]);
+
+  const stationStats = useMemo(() => {
+    const d3m = new Date();
+    d3m.setMonth(d3m.getMonth() - 3);
+    const cutoff = d3m.toISOString().slice(0, 10);
+    const map = {};
+    store.entries.filter((e) => e.dateISO >= cutoff).forEach((e) => {
+      if (!e.station) return;
+      if (!map[e.station]) map[e.station] = { total: 0, liters: 0, count: 0 };
+      map[e.station].total += e.liters * e.pricePerL;
+      map[e.station].liters += e.liters;
+      map[e.station].count += 1;
+    });
+    return Object.entries(map)
+      .map(([name, s]) => ({ name, avg: s.liters > 0 ? s.total / s.liters : 0, count: s.count }))
+      .sort((a, b) => a.avg - b.avg);
+  }, [store.entries]);
+
+  const timePills = [
+    { key: 'all', label: 'Tümü' },
+    { key: 'month', label: 'Bu ay' },
+    { key: '3month', label: 'Son 3 ay' },
+    { key: 'year', label: 'Bu yıl' },
+  ];
+
+  return (
+    <div>
+      <div className="app-header">
+        <BrandIcon />
+        <div className="brand-name">Yakıt Defteri</div>
+      </div>
+      <div style={{ padding: '12px 18px 10px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="title-block">
+          <h1>Geçmiş</h1>
+          <div className="sub">{filtered.length} dolum kaydı</div>
+        </div>
+<div className="filter-row">
+          {timePills.map((p) => (
+            <button key={p.key} className={`filter-pill${timeFilter === p.key ? ' active' : ''}`} onClick={() => setTimeFilter(p.key)}>{p.label}</button>
+          ))}
+        </div>
+        {allStations.length > 0 && (
+          <div className="filter-row">
+            {allStations.map(s => (
+              <button key={s} className={`filter-pill${stationFilter === s ? ' active' : ''}`} onClick={() => setStationFilter(stationFilter === s ? null : s)}>{s}</button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {priceHist.length >= 2 &&
+      <>
+          <div className="section-title">
+            <h3>Fiyat Geçmişi · ₺/Litre</h3>
+            <span className="meta">{timeFilter === 'all' && priceHist.length >= 2 ? `${fmtDate(priceHist[0].dateISO)} – ${fmtDate(priceHist[priceHist.length - 1].dateISO)}` : { '3month': 'Son 3 ay', year: 'Bu yıl' }[timeFilter]}</span>
+          </div>
+          <div className="chart-card">
+            <AreaChart data={priceHist.map((p) => p.pricePerL)} labels={priceHist.map((p) => p.dateISO)} unit="₺/L" showMinMax={!!(store.prefs && store.prefs.showMinMax)} />
+          </div>
+        </>
+      }
+
+      {stationStats.length >= 2 && (
+        <>
+          <div className="section-title">
+            <h3>İstasyon Karşılaştırması</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="meta">Son 3 ay</span>
+              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                <button onClick={() => setStationInfoOpen(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </button>
+                {stationInfoOpen && <>
+                  <div onClick={() => setStationInfoOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9 }} />
+                  <div style={{ position: 'absolute', right: 0, top: 20, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', zIndex: 10 }}>Enflasyon etkisini azaltmak için hep son 3 aya bakılır</div>
+                </>}
+              </div>
+            </div>
+          </div>
+          <div style={{ margin: '0 18px 8px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+            {stationStats.map((s, i) => (
+              <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  {i === 0 && <span style={{ fontSize: 10, background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 5, padding: '1px 5px', fontWeight: 600, letterSpacing: '0.02em' }}>UCUZ</span>}
+                  <span style={{ fontSize: 13, fontWeight: 500 }}>{s.name}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-2)' }}>{s.count}×</span>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600 }}>{fmt(s.avg, 2)} ₺/L</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="section-title">
+        <h3>{{ all: 'Tüm Dolumlar', month: 'Bu Ayki Dolumlar', '3month': 'Son 3 Aylık Dolumlar', year: 'Bu Yılki Dolumlar' }[timeFilter]}</h3>
+        {filtered.length > 0 && (() => {
+          const totalSpend = filtered.reduce((s, e) => s + e.liters * e.pricePerL, 0);
+          const totalL = filtered.reduce((s, e) => s + e.liters, 0);
+          const avgPrice = totalL > 0 ? totalSpend / totalL : 0;
+          return <span className="meta">{fmt(totalSpend, 0)} ₺ · {fmt(totalL, 1)} L</span>;
+        })()}
+      </div>
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Icon.Fuel s={28} />}
+          title={timeFilter === 'all' ? 'Henüz dolum kaydı yok' : 'Bu dönemde kayıt yok'}
+          sub={timeFilter === 'all' ? 'İlk dolumunu ekleyerek yakıt tüketimini takip etmeye başla.' : 'Seçili zaman aralığında dolum kaydı bulunmuyor.'}
+          action={timeFilter === 'all' ? <><Icon.Plus s={14} /> Dolum ekle</> : null}
+          onAction={timeFilter === 'all' ? () => document.querySelector('.fab')?.click() : null}
+        />
+      ) : (
+      <div className="entry-list">
+        {Object.entries(
+          filtered.reduce((acc, e) => {
+            const key = e.dateISO.slice(0, 7);
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(e);
+            return acc;
+          }, {})
+        ).sort((a, b) => b[0].localeCompare(a[0])).map(([key, entries]) => (
+          <div className="entry-group" key={key}>
+            <div className="entry-group-header">
+              <span className="month">{monthLabel(key)}</span>
+              <span className="count">{(() => {
+                const spend = entries.reduce((s, e) => s + e.liters * e.pricePerL, 0);
+                const cons = entries.map(e => consumptionMap.get(e.id)).filter(v => v !== undefined);
+                const avgCons = cons.length ? cons.reduce((s, v) => s + v, 0) / cons.length : null;
+                return `${entries.length} dolum · ${fmt(spend, 0)} ₺${avgCons !== null ? ` · ${fmt(avgCons, 1)} L/100` : ''}`;
+              })()}</span>
+            </div>
+            {entries.map((e) => {
+              const dm = dayMon(e.dateISO);
+              return (
+                <div className="entry" key={e.id}>
+                  <div className="entry-date">
+                    <div className="day">{dm.d}</div>
+                    <div className="mon">{dm.m}</div>
+                  </div>
+                  <div className="entry-mid">
+                    <div className="entry-top">
+                      <span className="liters">{fmt(e.liters, 1)} L</span>
+                      <span className={`entry-chip ${e.full ? 'full' : 'partial'}`}>{e.full ? 'Tam' : 'Yarım'}</span>
+                    </div>
+                    <div className="entry-bot">
+                      <span className="price">{fmt(e.pricePerL, 2)} ₺/L</span>
+                      {consumptionMap.has(e.id) && <><span className="sep">·</span><span>{fmt(consumptionMap.get(e.id), 1)} L/100km</span></>}
+                    </div>
+                    <div className="entry-bot" style={{ marginTop: 1 }}>
+                      <span>{fmtInt(e.km)} km</span>
+                      {e.station && <><span className="sep">·</span><span>{e.station}</span></>}
+                    </div>
+                    {e.note && <div className="entry-bot" style={{ marginTop: 1, fontStyle: 'italic', color: 'var(--text-dim)' }}>{e.note}</div>}
+                  </div>
+                  <div className="entry-right">
+                    <div className="total">{fmt(e.liters * e.pricePerL, 2)}<span className="u">₺</span></div>
+                    <div className="icons">
+                      <button className="btn-icon" onClick={() => onEdit(e)}><Icon.Pencil /></button>
+                      <button className="btn-icon" onClick={() => confirm('Bu dolum kaydı kalıcı olarak silinecek.', () => store.deleteEntry(e.id))}><Icon.Trash /></button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      )}
+    </div>);
+
+}
+
+/* ── Takvim ────────────────────────────────────────────── */
+function TakvimScreen({ onAddEvent, onEditEvent }) {
+  const store = useStore();
+  const confirm = useConfirm();
+  const allEvents = (store.events || []).map((e) => ({ ...e, days: daysUntil(e.endISO) }));
+  const upcoming = allEvents.filter((e) => e.days >= 0).sort((a, b) => a.days - b.days);
+  const expired = allEvents.filter((e) => e.days < 0).sort((a, b) => b.days - a.days);
+
+  const badge = (days) => {
+    if (days < 0) return { label: `${Math.abs(days)} gün önce`, cls: 'expired' };
+    if (days === 0) return { label: 'Bugün', cls: 'soon' };
+    if (days <= 30) return { label: `${days} gün`, cls: 'soon' };
+    return { label: `${days} gün`, cls: 'ok' };
+  };
+
+  const typeIcon = (type) => {
+    if (type === 'Kasko' || type === 'Sigorta') return <Icon.Shield />;
+    if (type === 'Muayene') return <Icon.ClipboardCheck />;
+    if (type === 'Bakım') return <Icon.Wrench />;
+    return <Icon.Tag />;
+  };
+
+  const renderCard = (e) => {
+    const b = badge(e.days);
+    const isSoon = e.days >= 0 && e.days <= 30;
+    return (
+      <div className={`upcoming-row${e.days < 0 ? ' expired' : ''}`} key={e.id}>
+        <div className="left">
+          <div className={`iconbox${e.days < 0 ? ' expired' : isSoon ? ' soon' : ''}`}>
+            {typeIcon(e.type)}
+          </div>
+          <div>
+            <div className="name">{e.type}</div>
+            <div className="date">
+              {e.startISO && <span style={{ opacity: 0.55 }}>{fmtDate(e.startISO)} → </span>}
+              <span style={{ color: 'var(--text)', fontWeight: 500 }}>{fmtDate(e.endISO)}</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className={`remaining ${b.cls}`}>{b.label}</span>
+          <button className="btn-icon" onClick={() => onEditEvent(e)}><Icon.Pencil /></button>
+          <button className="btn-icon" onClick={() => confirm('Bu etkinlik kalıcı olarak silinecek.', () => store.deleteEvent(e.id))}><Icon.Trash /></button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div className="app-header">
+        <BrandIcon />
+        <div className="brand-name">Yakıt Defteri</div>
+      </div>
+      <div className="title-row">
+        <div className="title-block">
+          <h1>Takvim</h1>
+          <div className="sub">{allEvents.length} etkinlik takip ediliyor</div>
+        </div>
+        <button className="btn btn-accent" onClick={onAddEvent}><Icon.Plus s={14} /> Ekle</button>
+      </div>
+
+      {allEvents.length === 0 ? (
+        <div className="upcoming-list">
+          <EmptyState
+            icon={<Icon.Calendar s={28} />}
+            title="Henüz etkinlik yok"
+            sub="Muayene, sigorta, lastik gibi hatırlatmaları buradan takip edebilirsin."
+            action={<><Icon.Plus s={14} /> Etkinlik ekle</>}
+            onAction={onAddEvent}
+          />
+        </div>
+      ) : (
+        <>
+          {upcoming.length > 0 && (
+            <>
+              <div className="section-title"><h3>Devam Eden</h3></div>
+              <div className="upcoming-list">{upcoming.map(renderCard)}</div>
+            </>
+          )}
+          {expired.length > 0 && (
+            <>
+              <div className="section-title" style={{ marginTop: upcoming.length > 0 ? 14 : 4 }}><h3>Süresi Dolmuş</h3></div>
+              <div className="upcoming-list">{expired.map(renderCard)}</div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Ayarlar ───────────────────────────────────────────── */
+function AyarlarScreen({ theme, setTheme }) {
+  const store = useStore();
+  const confirm = useConfirm();
+  const [bildirim, setBildirim] = useState(true);
+  const [importError, setImportError] = useState('');
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!Array.isArray(parsed.entries)) throw new Error();
+        store.loadData({ entries: parsed.entries, events: Array.isArray(parsed.events) ? parsed.events : [] });
+        setImportError('');
+      } catch {
+        setImportError('Geçersiz dosya. Lütfen dışa aktarılan bir JSON dosyası seçin.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  return (
+    <div>
+      <div className="app-header">
+        <BrandIcon />
+        <div className="brand-name">Yakıt Defteri</div>
+      </div>
+      <div className="title-row">
+        <div className="title-block">
+          <h1>Ayarlar</h1>
+          <div className="sub">Tercihler</div>
+        </div>
+      </div>
+
+      <div className="section-title"><h3>Görünüm</h3></div>
+      <div style={{ padding: '0 22px' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 14 }}>
+          <div className="label">Tema</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <button className={`chip-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12 }}>
+              <Icon.Moon /> Koyu
+            </button>
+            <button className={`chip-btn ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12 }}>
+              <Icon.Sun /> Açık
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="section-title"><h3>Tercihler</h3></div>
+      <div className="row-list">
+        <div className="row">
+          <div className="icon"><Icon.Bell s={16} /></div>
+          <div className="meta">
+            <h5>Bildirimler</h5>
+            <p>Kasko, sigorta, muayene</p>
+          </div>
+          <div className={`switch ${bildirim ? 'on' : ''}`} onClick={() => setBildirim((v) => !v)} />
+        </div>
+        <div className="row">
+          <div className="icon"><Icon.Gauge s={16} /></div>
+          <div className="meta">
+            <h5>Min/Maks İşaretleri</h5>
+            <p>Grafiklerde en düşük ve yüksek noktalar</p>
+          </div>
+          <div className={`switch ${(store.prefs && store.prefs.showMinMax) ? 'on' : ''}`} onClick={() => store.setPref('showMinMax', !(store.prefs && store.prefs.showMinMax))} />
+        </div>
+      </div>
+
+      <div style={{ padding: '0 22px 22px' }}>
+        <button className="btn-ghost" style={{ width: '100%', padding: 12, justifyContent: 'center', color: 'var(--text-2)', marginBottom: 10 }}
+        onClick={() => {
+          const blob = new Blob([JSON.stringify({ entries: store.entries, events: store.events || [] }, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `yakit-defteri-${todayISO()}.json`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        }}>
+          <Icon.Sparkle /> Verileri dışa aktar
+        </button>
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: 12, marginBottom: 10, background: 'none', border: '1px solid var(--border)', borderRadius: 12, fontSize: 14, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+          <Icon.Plus s={16} /> Verileri içe aktar
+          <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+        </label>
+        {importError && <div style={{ fontSize: 12, color: 'var(--negative)', marginBottom: 10, textAlign: 'center' }}>{importError}</div>}
+        <button className="btn-ghost" style={{ width: '100%', padding: 12, justifyContent: 'center', color: 'var(--text-2)' }}
+        onClick={() => confirm('Tüm veriler silinecek ve örnek verilerle sıfırlanacak.', () => store.resetToSeed())}>
+          <Icon.Trash /> Verileri sıfırla
+        </button>
+      </div>
+    </div>);
+
+}
+
+/* ── Sheets ────────────────────────────────────────────── */
+function EntrySheet({ open, onClose, editing }) {
+  const store = useStore();
+  const isEdit = !!editing;
+  const usedStations = useMemo(() => {
+    const seen = new Set();
+    const result = [];
+    [...store.entries].sort((a, b) => b.dateISO.localeCompare(a.dateISO)).forEach(e => {
+      if (e.station && !seen.has(e.station)) { seen.add(e.station); result.push(e.station); }
+    });
+    return result.slice(0, 5);
+  }, [store.entries]);
+  const [dateISO, setDateISO] = useState(todayISO());
+  const lastKm = useMemo(() => {
+    const before = store.entries.filter(e => e.dateISO <= dateISO && (!editing || e.id !== editing.id));
+    if (before.length === 0) return null;
+    return Math.max(...before.map(e => e.km));
+  }, [store.entries, dateISO, editing]);
+  const [liters, setLiters] = useState('');
+  const [pricePerL, setPricePerL] = useState('');
+  const [km, setKm] = useState('');
+  const [station, setStation] = useState('');
+  const [note, setNote] = useState('');
+  const [full, setFull] = useState(true);
+  const [errors, setErrors] = useState({});
+  const [discardOpen, setDiscardOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setErrors({});
+    if (editing) {
+      setDateISO(editing.dateISO);
+      setLiters(fmt(editing.liters, 2));
+      setPricePerL(fmt(editing.pricePerL, 2));
+      setKm(String(editing.km || ''));
+      setStation(editing.station || '');
+      setNote(editing.note || '');
+      setFull(!!editing.full);
+    } else {
+      setDateISO(todayISO());
+      setLiters(''); setPricePerL(''); setKm(''); setStation(''); setNote(''); setFull(true);
+    }
+  }, [open, editing]);
+
+  const total = useMemo(() => parseNum(liters) * parseNum(pricePerL), [liters, pricePerL]);
+  if (!open) return null;
+
+  const kmNum = parseInt(String(km).replace(/[^0-9]/g, ''), 10) || 0;
+  const isDirty = km.trim() || liters.trim() || pricePerL.trim();
+  const handleClose = () => {
+    if (!isEdit && isDirty) { setDiscardOpen(true); return; }
+    onClose();
+  };
+
+  const submit = () => {
+    const l = parseNum(liters), p = parseNum(pricePerL);
+    const k = parseInt(String(km).replace(/[^0-9]/g, ''), 10) || 0;
+    const errs = {};
+    if (k <= 0) errs.km = 'Kilometre girilmeli';
+    else if (!isEdit && lastKm !== null && k < lastKm) errs.km = `Önceki dolumdan düşük olamaz (son: ${fmtInt(lastKm)} km)`;
+    if (l <= 0) errs.liters = 'Litre girilmeli';
+    if (p <= 0) errs.pricePerL = 'Fiyat girilmeli';
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    const payload = { dateISO, liters: l, pricePerL: p, km: k, station: station.trim(), note: note.trim(), full };
+    if (isEdit) store.updateEntry(editing.id, payload); else store.addEntry(payload);
+    onClose();
+  };
+
+  return (
+    <>
+    <div className="modal-overlay" onClick={handleClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-handle" />
+        <div className="modal-head">
+          <h2>{isEdit ? 'Dolumu düzenle' : 'Yeni Dolum'}</h2>
+          <button className="btn-icon" onClick={handleClose}><Icon.X /></button>
+        </div>
+        {isEdit && <div className="modal-sub">Bu kaydı düzenle</div>}
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div className="label" style={{ margin: 0 }}>Tarih</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className={`filter-pill${dateISO === todayISO() ? ' active' : ''}`} onClick={() => setDateISO(todayISO())}>Bugün</button>
+            <button className={`filter-pill${dateISO === yesterdayISO() ? ' active' : ''}`} onClick={() => setDateISO(yesterdayISO())}>Dün</button>
+          </div>
+        </div>
+        <input className="input mono" type="date" value={dateISO} onChange={(e) => setDateISO(e.target.value)} />
+
+        <div className="label" style={{ marginTop: 10 }}>Kilometre</div>
+        <input className="input mono" inputMode="numeric" placeholder="örn. 146200" value={km} onChange={(e) => { setKm(e.target.value.replace(/[^0-9]/g, '')); setErrors((er) => ({ ...er, km: undefined })); }} style={errors.km ? { borderColor: 'var(--negative)' } : {}} />
+        {errors.km
+          ? <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3, paddingLeft: 2 }}>{errors.km}</div>
+          : (!isEdit && lastKm !== null && (
+              <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 3, paddingLeft: 2 }}>
+                Son kayıt: {fmtInt(lastKm)} km
+                {kmNum > lastKm && (() => {
+                  const diff = kmNum - lastKm;
+                  const warn = diff < 20 || diff > 2000;
+                  return <span style={{ color: warn ? 'var(--negative)' : 'var(--accent)', marginLeft: 8, fontFamily: 'var(--font-mono)' }}>· +{fmtInt(diff)} km{diff < 20 ? ' · çok az?' : diff > 2000 ? ' · çok fazla?' : ''}</span>;
+                })()}
+              </div>
+            ))
+        }
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
+          <div>
+            <div className="label">Litre</div>
+            <input className="input mono" inputMode="decimal" placeholder="0,00" value={liters} onChange={(e) => { setLiters(e.target.value.replace('.', ',')); setErrors((er) => ({ ...er, liters: undefined })); }} style={errors.liters ? { borderColor: 'var(--negative)' } : {}} />
+            {errors.liters && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>{errors.liters}</div>}
+          </div>
+          <div>
+            <div className="label">₺ / Litre</div>
+            <input className="input mono" inputMode="decimal" placeholder="0,00" value={pricePerL} onChange={(e) => { setPricePerL(e.target.value.replace('.', ',')); setErrors((er) => ({ ...er, pricePerL: undefined })); }} style={errors.pricePerL ? { borderColor: 'var(--negative)' } : {}} />
+            {errors.pricePerL && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 3 }}>{errors.pricePerL}</div>}
+          </div>
+        </div>
+        <div className={`toggle-card ${full ? 'on' : ''}`} style={{ marginTop: 10, padding: '10px 12px' }} onClick={() => setFull((v) => !v)}>
+          <div className="checkbox">{full && <Icon.Check s={14} />}</div>
+          <div>
+            <h5>Tam depo</h5>
+            <p>Tüketim hesabı bir sonraki tam depoyla yapılır.</p>
+          </div>
+        </div>
+
+        <div className="label" style={{ marginTop: 10 }}>
+          İstasyon <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, fontSize: 11 }}>(opsiyonel)</span>
+        </div>
+        {usedStations.length > 0 && (
+          <div className="chip-group" style={{ marginBottom: 6 }}>
+            {usedStations.map(s => (
+              <button key={s} className={`chip-btn${station === s ? ' active' : ''}`} onClick={() => setStation(station === s ? '' : s)}>{s}</button>
+            ))}
+          </div>
+        )}
+        <input className="input" placeholder="Shell, BP, Opet…" value={station} onChange={(e) => setStation(e.target.value)} />
+
+        <div className="label" style={{ marginTop: 10 }}>
+          Not <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, fontSize: 11 }}>(opsiyonel)</span>
+        </div>
+        <input className="input" placeholder="Uzun yol, bakım sonrası…" value={note} onChange={(e) => setNote(e.target.value)} />
+
+        <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-2)' }}>Toplam</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: 'var(--text)' }}>
+            {total > 0 ? <>{fmt(total, 2)} <span style={{ fontFamily: 'var(--font-sans)', color: 'var(--text-2)', fontSize: 13, fontWeight: 500 }}>₺</span></> : '—'}
+          </span>
+        </div>
+
+        <button className="btn btn-primary" style={{ width: '100%', marginTop: 10 }} onClick={submit}>{isEdit ? 'Güncelle' : 'Kaydet'}</button>
+      </div>
+    </div>
+    {discardOpen && (
+      <div className="modal-overlay" style={{ zIndex: 300 }} onClick={() => setDiscardOpen(false)}>
+        <div className="modal" onClick={(e) => e.stopPropagation()} style={{ paddingBottom: 28 }}>
+          <div className="modal-handle" />
+          <div className="modal-head"><h2>Vazgeç?</h2></div>
+          <div className="modal-sub">Girilen bilgiler kaydedilmeyecek.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setDiscardOpen(false); onClose(); }}>Çıkış</button>
+            <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setDiscardOpen(false)}>Düzenlemeye devam et</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
+  );
+}
+
+function EventSheet({ open, onClose, editing }) {
+  const store = useStore();
+  const isEdit = !!editing;
+  const [type, setType] = useState('Kasko');
+  const [startISO, setStartISO] = useState(todayISO());
+  const [endISO, setEndISO] = useState('');
+  const [notifyDays, setNotifyDays] = useState(15);
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (!open) return;
+    setErrors({});
+    if (editing) {
+      setType(editing.type || 'Kasko');
+      setStartISO(editing.startISO || todayISO());
+      setEndISO(editing.endISO || '');
+      setNotifyDays(editing.notifyDays || 15);
+    } else {
+      setType('Kasko');
+      setStartISO(todayISO());
+      const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+      setEndISO(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+      setNotifyDays(15);
+    }
+  }, [open, editing]);
+
+  if (!open) return null;
+  const submit = () => {
+    const errs = {};
+    if (!endISO) errs.endISO = 'Bitiş tarihi gerekli';
+    else if (startISO && endISO < startISO) errs.endISO = 'Bitiş tarihi başlangıçtan önce olamaz';
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    const payload = { type, startISO, endISO, notifyDays };
+    if (isEdit) store.updateEvent(editing.id, payload); else store.addEvent(payload);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-handle" />
+        <div className="modal-head"><h2>{isEdit ? 'Etkinliği düzenle' : 'Yeni etkinlik'}</h2><button className="btn-icon" onClick={onClose}><Icon.X /></button></div>
+        <div className="modal-sub">{isEdit ? 'Etkinlik bilgilerini düzenle' : 'Yeni hatırlatma ekle'}</div>
+        <div className="label">Tür</div>
+        <div className="chip-group">
+          {['Kasko', 'Sigorta', 'Muayene', 'Bakım', 'Diğer'].map((t) =>
+          <button key={t} className={`chip-btn ${type === t ? 'active' : ''}`} onClick={() => setType(t)}>{t}</button>
+          )}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
+          <div>
+            <div className="label">Başlangıç</div>
+            <input className="input mono" type="date" value={startISO} onChange={(e) => setStartISO(e.target.value)} />
+          </div>
+          <div>
+            <div className="label">Bitiş</div>
+            <input className={`input mono${errors.endISO ? ' error' : ''}`} type="date" value={endISO} onChange={(e) => { setEndISO(e.target.value); setErrors((p) => ({ ...p, endISO: undefined })); }} />
+            {errors.endISO && <div className="field-error">{errors.endISO}</div>}
+          </div>
+        </div>
+        <div className="label" style={{ marginTop: 12 }}>Önceden bildir (gün)</div>
+        <div className="chip-group">
+          {[7, 15, 30, 60].map((d) =>
+          <button key={d} className={`chip-btn ${notifyDays === d ? 'active' : ''}`} onClick={() => setNotifyDays(d)}>{d}</button>
+          )}
+        </div>
+        <button className="btn btn-primary" style={{ width: '100%', marginTop: 18 }} onClick={submit}>{isEdit ? 'Güncelle' : 'Kaydet'}</button>
+      </div>
+    </div>);
+
+}
+
+/* ── Root App ──────────────────────────────────────────── */
+function App() {
+  const [screen, setScreen] = useState('ozet');
+  const [theme, setTheme] = useState('dark');
+  const [entrySheet, setEntrySheet] = useState({ open: false, editing: null });
+  const [eventSheet, setEventSheet] = useState({ open: false, editing: null });
+
+  return (
+    <StoreProvider><ConfirmProvider>
+      <div className="ios-device">
+        <div className="ios-screen" data-theme={theme}>
+          <div className="ios-dynamic-island" />
+          <div className="ios-statusbar">
+            <span className="time">9:41</span>
+            <span className="indicators">
+              <SignalIcon />
+              <WifiIcon />
+              <BatteryIcon />
+            </span>
+          </div>
+          <div className="app">
+            <div className="app-content">
+              <div key={screen} className="screen-transition">
+                {screen === 'ozet' && <OzetScreen />}
+                {screen === 'gecmis' && <GecmisScreen onEdit={(e) => setEntrySheet({ open: true, editing: e })} />}
+                {screen === 'takvim' && <TakvimScreen onAddEvent={() => setEventSheet({ open: true, editing: null })} onEditEvent={(e) => setEventSheet({ open: true, editing: e })} />}
+                {screen === 'ayarlar' && <AyarlarScreen theme={theme} setTheme={setTheme} />}
+              </div>
+            </div>
+            <nav className="bottom-nav">
+              <button className={`nav-btn ${screen === 'ozet' ? 'active' : ''}`} onClick={() => setScreen('ozet')}><Icon.Home s={22} /><span>Özet</span></button>
+              <button className={`nav-btn ${screen === 'gecmis' ? 'active' : ''}`} onClick={() => setScreen('gecmis')}><Icon.History s={22} /><span>Geçmiş</span></button>
+              <div className="fab-wrap"><button className="fab" onClick={() => setEntrySheet({ open: true, editing: null })}><Icon.Plus s={26} /></button></div>
+              <button className={`nav-btn ${screen === 'takvim' ? 'active' : ''}`} onClick={() => setScreen('takvim')}><Icon.Calendar s={22} /><span>Takvim</span></button>
+              <button className={`nav-btn ${screen === 'ayarlar' ? 'active' : ''}`} onClick={() => setScreen('ayarlar')}><Icon.Settings s={22} /><span>Ayarlar</span></button>
+            </nav>
+            <div className="ios-home-indicator" />
+          </div>
+          <EntrySheet open={entrySheet.open} editing={entrySheet.editing} onClose={() => setEntrySheet({ open: false, editing: null })} />
+          <EventSheet open={eventSheet.open} editing={eventSheet.editing} onClose={() => setEventSheet({ open: false, editing: null })} />
+        </div>
+      </div>
+    </ConfirmProvider></StoreProvider>);
+
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
