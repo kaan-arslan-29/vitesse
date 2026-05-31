@@ -6,8 +6,13 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "sync": "npm run build && cap sync android",
-    "open:android": "cap open android"
+    "sync": "vite build && npx cap sync android",
+    "run:android": "vite build && npx cap run android",
+    "open:android": "npx cap open android",
+    "build:android": "powershell -ExecutionPolicy Bypass -File build-android.ps1",
+    "build:android:release": "powershell -ExecutionPolicy Bypass -File build-android.ps1 -Release",
+    "build:android:install": "powershell -ExecutionPolicy Bypass -File build-android.ps1 -Install",
+    "setup:keystore": "powershell -ExecutionPolicy Bypass -File setup-keystore.ps1"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
@@ -20,11 +25,13 @@
     "leaflet": "^1.9.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "sharp": "^0.34.5",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "jimp": "^1.6.1",
+    "puppeteer": "^25.0.4",
     "vite": "^6.3.5"
   }
 }

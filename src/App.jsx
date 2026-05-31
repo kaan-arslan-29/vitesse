@@ -271,6 +271,7 @@ function StoreProvider({ children }) {
     deleteEvent: (id) => setData((d) => ({ ...d, events: d.events.filter((e) => e.id !== id) })),
     setPref: (key, val) => setData((d) => ({ ...d, prefs: { ...(d.prefs || {}), [key]: val } })),
     resetToSeed: () => setData((d) => ({ entries: SEED.entries, events: SEED.events, prefs: d.prefs || SEED.prefs })),
+    clearAll: () => setData({ entries: [], events: [], prefs: {} }),
     loadData: (d) => setData(d),
   }), []);
   const value = useMemo(() => ({ ...data, ...actions }), [data, actions]);
@@ -765,6 +766,67 @@ function ExportSheet({ onClose }) {
   );
 }
 
+function ImportSheet({ onClose }) {
+  const store = useStore();
+  const importRef = useRef(null);
+  const [importError, setImportError] = useState('');
+  const [importSuccess, setImportSuccess] = useState(false);
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!Array.isArray(parsed.entries)) throw new Error();
+        const prefs = parsed.prefs && typeof parsed.prefs === 'object' ? parsed.prefs : (store.prefs || {});
+        store.loadData({ entries: parsed.entries, events: Array.isArray(parsed.events) ? parsed.events : [], prefs });
+        setImportError('');
+        setImportSuccess(true);
+        setTimeout(() => { setImportSuccess(false); onClose(); }, 2000);
+      } catch {
+        setImportError('Geçersiz dosya. Lütfen dışa aktarılan bir JSON dosyası seçin.');
+      }
+    };
+    reader.readAsText(file);
+    if (e.target) e.target.value = '';
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal compact" onClick={e => e.stopPropagation()}>
+        <div className="modal-handle" />
+        <div className="modal-head">
+          <h2>İçe Aktar</h2>
+          <button className="btn-icon" onClick={onClose}><Icon.X /></button>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-2)', margin: '0 0 16px' }}>
+          Dışa aktarılan JSON dosyasını seç.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}
+            onClick={() => importRef.current?.click()}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(99,102,241,0.12)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2l2 4 2-8 2 4h2"/></svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>JSON (.json)</div>
+              <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>Vitesse uygulamasından dışa aktarılan yedek</div>
+            </div>
+          </button>
+        </div>
+        <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+        {importSuccess && <div style={{ fontSize: 12, color: 'var(--positive)', marginTop: 12 }}>Veriler başarıyla içe aktarıldı.</div>}
+        {importError && <div style={{ fontSize: 12, color: 'var(--negative)', marginTop: 12 }}>{importError}</div>}
+        <div style={{ height: 4 }} />
+      </div>
+    </div>
+  );
+}
+
 /* ── LPG Hesaplama ─────────────────────────────────────── */
 function LpgSheet({ onClose }) {
   const store = useStore();
@@ -783,8 +845,7 @@ function LpgSheet({ onClose }) {
     return { monthlyL: totalL / months, benzinFiyat: lastPrice };
   }, [store.entries]);
 
-  const [tuketimBirim, setTuketimBirim] = useState('₺');
-  const [monthlyVal, setMonthlyVal] = useState(() => defaults.monthlyL ? fmt(defaults.monthlyL, 1) : '');
+  const [monthlyVal, setMonthlyVal] = useState(() => defaults.monthlyL && defaults.benzinFiyat ? fmt(defaults.monthlyL * defaults.benzinFiyat, 0) : '');
   const [benzinFiyat, setBenzinFiyat] = useState(() => defaults.benzinFiyat ? fmt(defaults.benzinFiyat, 2) : '');
   const [montaj, setMontaj] = useState('');
   const [lpgFiyat, setLpgFiyat] = useState('');
@@ -794,11 +855,11 @@ function LpgSheet({ onClose }) {
     const mv = parseFloat(monthlyVal.replace(',','.')); const bf = parseFloat(benzinFiyat.replace(',','.'));
     const m = parseFloat(montaj); const lf = parseFloat(lpgFiyat.replace(',','.')); const f = parseFloat(fark) / 100;
     if (!mv || !bf || !m || !lf) return null;
-    const ml = tuketimBirim === 'L' ? mv : mv / bf;
+    const ml = mv / bf;
     const saving = ml * bf - ml * (1 + f) * lf;
     if (saving <= 0) return { saving, months: null };
     return { saving, months: Math.ceil(m / saving) };
-  }, [monthlyVal, benzinFiyat, montaj, lpgFiyat, fark, tuketimBirim]);
+  }, [monthlyVal, benzinFiyat, montaj, lpgFiyat, fark]);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -810,17 +871,8 @@ function LpgSheet({ onClose }) {
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-            <div className="label" style={{ margin: 0 }}>Aylık tüketim</div>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {['₺', 'L'].map(b => (
-                <button key={b} onClick={() => setTuketimBirim(b)}
-                  className={`chip-btn${tuketimBirim === b ? ' active' : ''}`}
-                  style={{ padding: '3px 10px', fontSize: 12 }}>{b}</button>
-              ))}
-            </div>
-          </div>
-          <input className="input" type="number" inputMode="decimal" value={monthlyVal} onChange={e => setMonthlyVal(e.target.value)} placeholder={tuketimBirim === 'L' ? 'örn. 120' : 'örn. 6500'} />
+          <div className="label">Aylık tüketim (₺)</div>
+          <input className="input" type="number" inputMode="decimal" value={monthlyVal} onChange={e => setMonthlyVal(e.target.value)} placeholder="örn. 6500" />
         </div>
 
         {[
@@ -2030,7 +2082,7 @@ function GoogleDriveSection() {
           </>
         ) : (
           <div className="row" style={{ cursor: 'pointer' }} onClick={drive.signIn}>
-            <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div>
+            <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg></div>
             <div className="meta"><h5>Google ile Bağlan</h5><p>Veriler otomatik yedeklenir</p></div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
           </div>
@@ -2042,10 +2094,9 @@ function GoogleDriveSection() {
 
 function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmReminder, onEditKmReminder, onOpenExport, onOpenFeedback }) {
   const store = useStore();
+  const drive = useDrive();
   const confirm = useConfirm();
-  const importRef = useRef(null);
-  const [importError, setImportError] = useState('');
-  const [importSuccess, setImportSuccess] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const bildirim = !!(store.prefs?.bildirimler);
   const handleBildirimToggle = async () => {
     if (!bildirim) {
@@ -2058,27 +2109,6 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
         await LocalNotifications.cancel({ notifications: pending.notifications });
       }
     }
-  };
-
-  const handleImport = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const parsed = JSON.parse(ev.target.result);
-        if (!Array.isArray(parsed.entries)) throw new Error();
-        const prefs = parsed.prefs && typeof parsed.prefs === 'object' ? parsed.prefs : (store.prefs || {});
-        store.loadData({ entries: parsed.entries, events: Array.isArray(parsed.events) ? parsed.events : [], prefs });
-        setImportError('');
-        setImportSuccess(true);
-        setTimeout(() => setImportSuccess(false), 3000);
-      } catch {
-        setImportError('Geçersiz dosya. Lütfen dışa aktarılan bir JSON dosyası seçin.');
-      }
-    };
-    reader.readAsText(file);
-    if (e.target) e.target.value = '';
   };
 
   return (
@@ -2157,7 +2187,7 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
           <div className={`switch ${bildirim ? 'on' : ''}`} onClick={handleBildirimToggle} />
         </div>
         <div className="row">
-          <div className="icon"><Icon.Gauge s={16} /></div>
+          <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
           <div className="meta">
             <h5>Min/Maks İşaretleri</h5>
             <p>Grafiklerde en düşük ve yüksek noktalar</p>
@@ -2168,8 +2198,6 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
 
       <KmReminderSection onAdd={onAddKmReminder} onEdit={onEditKmReminder} />
 
-      <GoogleDriveSection />
-
       <div className="section-title"><h3>Geri Bildirim</h3></div>
       <div className="row-list">
         <div className="row" style={{ cursor: 'pointer' }} onClick={onOpenFeedback}>
@@ -2179,35 +2207,39 @@ function AyarlarScreen({ theme, setTheme, lang, setLang, onGizlilik, onAddKmRemi
         </div>
       </div>
 
-      <div className="section-title"><h3>Veriler</h3></div>
+      <GoogleDriveSection />
+
+      <div className="section-title"><h3>Manuel Yedekleme</h3></div>
       <div className="row-list">
         <div className="row" style={{ cursor: 'pointer' }} onClick={onOpenExport}>
-          <div className="icon"><Icon.Sparkle s={16} /></div>
+          <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
           <div className="meta"><h5>Dışa Aktar</h5><p>Excel veya JSON olarak kaydet</p></div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
         </div>
-        <div className="row" style={{ cursor: 'pointer' }} onClick={() => importRef.current?.click()}>
-          <div className="icon"><Icon.Plus s={16} /></div>
+        <div className="row" style={{ cursor: 'pointer' }} onClick={() => setImportOpen(true)}>
+          <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="8 18 12 22 16 18"/><line x1="12" y1="22" x2="12" y2="9"/></svg></div>
           <div className="meta"><h5>İçe Aktar</h5><p>Daha önce dışa aktarılan JSON dosyası</p></div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
         </div>
-        <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
-        {importSuccess && <div style={{ fontSize: 12, color: 'var(--positive)', padding: '6px 16px 10px' }}>Veriler başarıyla içe aktarıldı.</div>}
-        {importError && <div style={{ fontSize: 12, color: 'var(--negative)', padding: '6px 16px 10px' }}>{importError}</div>}
+        {importOpen && <ImportSheet onClose={() => setImportOpen(false)} />}
       </div>
 
       <div className="section-title"><h3>Tehlikeli Bölge</h3></div>
       <div className="row-list">
         <div className="row" style={{ cursor: 'pointer' }} onClick={() => confirm('Tüm dolum ve takvim kayıtları silinecek, örnek veriler yüklenecek. Araç bilgilerin ve tercihler korunur.', () => store.resetToSeed(), 'Sıfırla')}>
           <div className="icon" style={{ background: 'rgba(248,113,113,0.12)', color: 'var(--negative)' }}><Icon.Trash s={16} /></div>
-          <div className="meta"><h5 style={{ color: 'var(--negative)' }}>Verileri Sıfırla</h5><p>Tüm kayıtlar silinir, geri alınamaz</p></div>
+          <div className="meta"><h5 style={{ color: 'var(--negative)' }}>Verileri Sıfırla</h5><p>Kayıtlar silinir, örnek veriler yüklenir</p></div>
+        </div>
+        <div className="row" style={{ cursor: 'pointer' }} onClick={() => confirm('Tüm yerel veriler ve Google Drive yedeği kalıcı olarak silinecek. Bu işlem geri alınamaz.', async () => { await drive.deleteAccount(); store.clearAll(); }, 'Sil')}>
+          <div className="icon" style={{ background: 'rgba(248,113,113,0.12)', color: 'var(--negative)' }}><Icon.Trash s={16} /></div>
+          <div className="meta"><h5 style={{ color: 'var(--negative)' }}>Tüm Verileri Sil</h5><p>Yerel veriler ve Drive yedeği tamamen silinir</p></div>
         </div>
       </div>
 
       <div className="section-title"><h3>Hakkında</h3></div>
       <div className="row-list">
         <div className="row" style={{ cursor: 'pointer' }} onClick={onGizlilik}>
-          <div className="icon"><Icon.Shield s={16} /></div>
+          <div className="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
           <div className="meta"><h5>Gizlilik Politikası</h5></div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
         </div>
@@ -2247,15 +2279,15 @@ function GizlilikScreen({ onBack }) {
         {[
           {
             title: 'Toplanan Veriler',
-            content: 'Uygulama hiçbir kişisel veri toplamaz. Girdiğiniz dolum kayıtları, bakım etkinlikleri ve tercihler yalnızca cihazınızın yerel depolama alanında (localStorage) saklanır. Bu veriler hiçbir sunucuya gönderilmez.'
+            content: 'Girdiğiniz dolum kayıtları, bakım etkinlikleri ve tercihler öncelikle cihazınızın yerel depolama alanında (localStorage) saklanır. Google Drive yedekleme özelliğini etkinleştirirseniz bu veriler Google hesabınızın Drive uygulama klasörüne yüklenir; yalnızca sizin erişiminize açıktır. Google OAuth ile giriş yaptığınızda e-posta adresiniz yerel olarak kaydedilir ve hesap bağlantısını kestiğinizde silinir.'
           },
           {
             title: 'Veri Paylaşımı',
-            content: 'Verileriniz üçüncü taraflarla paylaşılmaz, satılmaz ve reklam amacıyla kullanılmaz.'
+            content: 'Verileriniz reklam amacıyla kullanılmaz veya üçüncü taraflara satılmaz. Google Drive yedekleme tercihini etkinleştirmeniz durumunda yedek dosyanız Google\'ın altyapısında saklanır ve Google\'ın gizlilik politikasına tabidir.'
           },
           {
             title: 'Üçüncü Taraf Hizmetler',
-            content: 'OpenStreetMap/Overpass API yakındaki istasyonları listelemek için anlık konum koordinatını kullanır. Leaflet harita görüntüleme için unpkg.com CDN\'inden yüklenir. Google Fonts yazı tipleri için kullanılır. Bu hizmetler kendi gizlilik politikalarına tabidir.'
+            content: 'OpenStreetMap/Overpass API: "Yakındaki İstasyonlar" özelliği kullanıldığında konum koordinatlarınız Overpass API sunucusuna gönderilir; istasyon listesi alındıktan sonra herhangi bir veri saklanmaz. Leaflet harita görüntüleme için unpkg.com CDN\'inden yüklenir. Google Fonts yazı tipleri için kullanılır. Bu hizmetler kendi gizlilik politikalarına tabidir.'
           },
           {
             title: 'Bildirimler',
@@ -2263,11 +2295,11 @@ function GizlilikScreen({ onBack }) {
           },
           {
             title: 'Konum Verisi',
-            content: 'Uygulama, "Yakındaki İstasyonlar" özelliği için konum iznini talep eder. Konum verisi yalnızca yakındaki yakıt istasyonlarını listelemek amacıyla anlık olarak kullanılır; kaydedilmez ve hiçbir sunucuya gönderilmez.'
+            content: 'Uygulama, "Yakındaki İstasyonlar" özelliği için konum iznini talep eder. Konum koordinatları yalnızca yakın çevredeki yakıt istasyonlarını sorgulamak amacıyla Overpass API\'ye anlık olarak iletilir; cihazda kaydedilmez ve başka herhangi bir amaçla kullanılmaz.'
           },
           {
             title: 'Veri Silme',
-            content: 'Tüm verilerinizi istediğiniz zaman Ayarlar ekranından silebilirsiniz. Tarayıcı verilerini temizlemek de aynı sonucu doğurur.'
+            content: 'Ayarlar > Tehlikeli Bölge ekranındaki "Tüm Verileri Sil" seçeneği yerel kayıtlarınızı ve Google Drive yedek dosyanızı kalıcı olarak siler. Yalnızca yerel verileri temizlemek için uygulamayı kaldırabilir veya tarayıcı verilerini silebilirsiniz.'
           },
           {
             title: 'Çocukların Gizliliği',
@@ -2729,7 +2761,7 @@ function NotificationChecker() {
       }
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
-      const KEY = 'yakit-notified';
+      const KEY = 'vitesse-notified';
       const notified = (() => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { return {}; } })();
       const shownToday = !!notified[todayStr];
       const futureNotifs = [];
@@ -2827,6 +2859,12 @@ async function driveDownload(accessToken, fileId) {
   if (!res.ok) throw new Error('download_failed');
   return res.json();
 }
+async function driveDeleteFile(accessToken, fileId) {
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
 async function refreshToken(refreshTok) {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -2920,13 +2958,25 @@ function DriveProvider({ children }) {
 
   const signOut = useCallback(() => { clearToken(); setToken(null); }, []);
 
+  const deleteAccount = useCallback(async () => {
+    const at = await getAccessToken();
+    if (at) {
+      try {
+        const file = await driveGetFile(at);
+        if (file) await driveDeleteFile(at, file.id);
+      } catch { /* silent */ }
+    }
+    clearToken();
+    setToken(null);
+  }, [getAccessToken]);
+
   const value = useMemo(() => ({
     isSignedIn: !!token,
     email: token?.email,
     lastBackup,
     backupStatus,
-    signIn, signOut, backup, restore, handleOAuthCallback,
-  }), [token, backupStatus, lastBackup, signIn, signOut, backup, restore, handleOAuthCallback]);
+    signIn, signOut, backup, restore, handleOAuthCallback, deleteAccount,
+  }), [token, backupStatus, lastBackup, signIn, signOut, backup, restore, handleOAuthCallback, deleteAccount]);
 
   return <DriveCtx.Provider value={value}>{children}</DriveCtx.Provider>;
 }
@@ -2998,10 +3048,10 @@ function FeedbackSheet({ onClose }) {
 /* ── Root App ──────────────────────────────────────────── */
 function App() {
   const [screen, setScreen] = useState('ozet');
-  const [lang, setLang] = useState(() => localStorage.getItem('yakit-lang') || 'tr');
-  useEffect(() => { localStorage.setItem('yakit-lang', lang); }, [lang]);
-  const [theme, setTheme] = useState(() => localStorage.getItem('yakit-theme') || 'dark');
-  useEffect(() => { localStorage.setItem('yakit-theme', theme); }, [theme]);
+  const [lang, setLang] = useState(() => localStorage.getItem('vitesse-lang') || 'tr');
+  useEffect(() => { localStorage.setItem('vitesse-lang', lang); }, [lang]);
+  const [theme, setTheme] = useState(() => localStorage.getItem('vitesse-theme') || 'dark');
+  useEffect(() => { localStorage.setItem('vitesse-theme', theme); }, [theme]);
   const [systemTheme, setSystemTheme] = useState(() => window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: light)');
