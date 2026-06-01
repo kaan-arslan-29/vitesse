@@ -241,14 +241,46 @@ const parseNum = (s) => {
 };
 
 /* ── Store ─────────────────────────────────────────────── */
-const STORAGE_KEY = 'vitesse-v4';
+const STORAGE_KEY = 'vitesse-v6';
 const SEED = {
   entries: [
-  { id: 'e1', dateISO: '2026-02-14', liters: 25.00, pricePerL: 58.00, km: 143000, station: '', full: true },
-  { id: 'e2', dateISO: '2026-03-01', liters: 30.00, pricePerL: 60.00, km: 143300, station: '', full: true },
-  { id: 'e3', dateISO: '2026-03-09', liters: 45.00, pricePerL: 62.00, km: 143800, station: 'BP', full: true },
-  { id: 'e4', dateISO: '2026-03-15', liters: 45.00, pricePerL: 65.00, km: 144700, station: 'BP', full: false },
-  { id: 'e5', dateISO: '2026-03-25', liters: 45.00, pricePerL: 67.70, km: 145500, station: 'Shell', full: true }],
+  { id: 'e1',  dateISO: '2025-01-07', liters: 35, pricePerL: 30.0, km: 120000, station: 'BP',    full: true },
+  { id: 'e2',  dateISO: '2025-01-23', liters: 38, pricePerL: 32.0, km: 120665, station: 'Shell', full: true },
+  { id: 'e3',  dateISO: '2025-02-17', liters: 40, pricePerL: 31.5, km: 121465, station: 'Total', full: true },
+  { id: 'e4',  dateISO: '2025-03-06', liters: 35, pricePerL: 33.0, km: 122100, station: 'Opet',  full: true },
+  { id: 'e5',  dateISO: '2025-03-18', liters: 38, pricePerL: 35.0, km: 122845, station: 'BP',    full: true },
+  { id: 'e6',  dateISO: '2025-03-28', liters: 36, pricePerL: 33.5, km: 123490, station: 'Shell', full: true },
+  { id: 'e7',  dateISO: '2025-04-13', liters: 40, pricePerL: 37.0, km: 124260, station: 'Total', full: true },
+  { id: 'e8',  dateISO: '2025-04-27', liters: 38, pricePerL: 44.0, km: 124925, station: 'Opet',  full: true },
+  { id: 'e9',  dateISO: '2025-05-08', liters: 35, pricePerL: 45.5, km: 125625, station: 'BP',    full: true },
+  { id: 'e10', dateISO: '2025-05-19', liters: 40, pricePerL: 47.0, km: 126350, station: 'Shell', full: true },
+  { id: 'e11', dateISO: '2025-05-30', liters: 38, pricePerL: 46.0, km: 127095, station: 'Total', full: true },
+  { id: 'e12', dateISO: '2025-06-20', liters: 45, pricePerL: 47.5, km: 127900, station: 'Opet',  full: true },
+  { id: 'e13', dateISO: '2025-07-11', liters: 38, pricePerL: 46.5, km: 128582, station: 'BP',    full: true },
+  { id: 'e14', dateISO: '2025-07-26', liters: 42, pricePerL: 47.5, km: 129269, station: 'Shell', full: true },
+  { id: 'e15', dateISO: '2025-08-09', liters: 38, pricePerL: 46.0, km: 129979, station: 'Total', full: true },
+  { id: 'e16', dateISO: '2025-08-21', liters: 40, pricePerL: 47.5, km: 130656, station: 'Opet',  full: true },
+  { id: 'e17', dateISO: '2025-08-31', liters: 35, pricePerL: 46.0, km: 131296, station: 'BP',    full: true },
+  { id: 'e18', dateISO: '2025-09-16', liters: 42, pricePerL: 47.0, km: 131997, station: 'Shell', full: true },
+  { id: 'e19', dateISO: '2025-09-30', liters: 38, pricePerL: 46.5, km: 132679, station: 'Total', full: true },
+  { id: 'e20', dateISO: '2025-10-11', liters: 40, pricePerL: 47.5, km: 133333, station: 'Opet',  full: true },
+  { id: 'e21', dateISO: '2025-10-23', liters: 38, pricePerL: 46.0, km: 134043, station: 'BP',    full: true },
+  { id: 'e22', dateISO: '2025-10-31', liters: 35, pricePerL: 47.0, km: 134636, station: 'Shell', full: true },
+  { id: 'e23', dateISO: '2025-11-21', liters: 45, pricePerL: 46.5, km: 135458, station: 'Total', full: true },
+  { id: 'e24', dateISO: '2025-12-09', liters: 40, pricePerL: 56.5, km: 136126, station: 'Opet',  full: true },
+  { id: 'e25', dateISO: '2025-12-20', liters: 38, pricePerL: 58.5, km: 136808, station: 'BP',    full: true },
+  { id: 'e26', dateISO: '2025-12-30', liters: 35, pricePerL: 57.5, km: 137383, station: 'Shell', full: true },
+  { id: 'e27', dateISO: '2026-01-14', liters: 40, pricePerL: 60.0, km: 138131, station: 'Total', full: true },
+  { id: 'e28', dateISO: '2026-01-29', liters: 38, pricePerL: 61.5, km: 138776, station: 'Opet',  full: true },
+  { id: 'e29', dateISO: '2026-02-21', liters: 45, pricePerL: 63.0, km: 139598, station: 'BP',    full: true },
+  { id: 'e30', dateISO: '2026-03-10', liters: 38, pricePerL: 64.0, km: 140233, station: 'Shell', full: true },
+  { id: 'e31', dateISO: '2026-03-22', liters: 40, pricePerL: 65.5, km: 140953, station: 'Total', full: true },
+  { id: 'e32', dateISO: '2026-03-31', liters: 35, pricePerL: 63.5, km: 141528, station: 'Opet',  full: true },
+  { id: 'e33', dateISO: '2026-04-15', liters: 42, pricePerL: 66.0, km: 142313, station: 'BP',    full: true },
+  { id: 'e34', dateISO: '2026-04-28', liters: 40, pricePerL: 67.5, km: 142990, station: 'Shell', full: true },
+  { id: 'e35', dateISO: '2026-05-10', liters: 38, pricePerL: 68.0, km: 143686, station: 'Total', full: true },
+  { id: 'e36', dateISO: '2026-05-21', liters: 35, pricePerL: 69.5, km: 144270, station: 'Opet',  full: true },
+  { id: 'e37', dateISO: '2026-05-31', liters: 36, pricePerL: 67.5, km: 144915, station: 'BP',    full: true }],
 
   events: [
   { id: 'ev1', type: 'Kasko', startISO: '2026-05-15', endISO: '2026-06-03', notifyDays: 15 },
@@ -257,9 +289,19 @@ const SEED = {
   prefs: { showMinMax: false, kmReminders: [] }
 };
 
+const SEED_ENTRIES_VERSION = 6;
+
 function loadStore() {
-  try {const raw = localStorage.getItem(STORAGE_KEY);return raw ? JSON.parse(raw) : SEED;}
-  catch (e) {return SEED;}
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return SEED;
+    const data = JSON.parse(raw);
+    // Sadece entries versiyon değiştiğinde entries güncelle; events/prefs her zaman koru
+    if (!data._ev || data._ev < SEED_ENTRIES_VERSION) {
+      return { ...data, entries: SEED.entries, _ev: SEED_ENTRIES_VERSION };
+    }
+    return data;
+  } catch (e) { return SEED; }
 }
 function saveStore(d) {try {localStorage.setItem(STORAGE_KEY, JSON.stringify(d));} catch (e) {}}
 
